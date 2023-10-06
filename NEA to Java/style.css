@@ -1,0 +1,23 @@
+body {
+	background-color:gray;
+}
+#planetView {
+	position:absolute;
+	top: 0px;
+	left:0px;
+	border:2px solid white;
+	background-color:black;
+	color:white;
+}
+#NoImage1 {
+	position:absolute;
+	width:100px;
+	height:100px;
+	background-color:blue;
+}
+#infoTab{
+	position:absolute;
+	width:300px;
+	top: 0px;
+	background-color:black;
+}
