@@ -10,15 +10,44 @@
 	</div>
 	
 	<div id = "buttonSpace">
-		<button class = "button" id = "slower">Slow Down</button>
-		<button class = "button" id = "faster">Speed Up</button>
-		<button class = "button" id = "pause">Pause</button>
-		<button class = "button" id = "reset">Reset View</button>
-		<button class = "button" id = "centre">Centre View</button>
+		<button class = "viewButton" id = "slower">Slow Down</button>
+		<button class = "viewButton" id = "faster">Speed Up</button>
+		<button class = "viewButton" id = "pause">Pause</button>
+		<button class = "viewButton" id = "reset">Reset View</button>
+		<button class = "viewButton" id = "centre">Centre View</button>
+		<button class = "viewButton" id = "addPlanet">Add Planet</button>
+		<button class = "viewButton" id = "reset">Reverse To Start</button>
+		<button class = "viewButton" id = "2" disabled>Load Preset</button>
+		<button class = "viewButton" id = "3" disabled>Export</button>
+		<button class = "viewButton" id = "4" disabled>Import</button>
 	</div>
 	
 	<div id = "infoTab">
-		<button  id = "test">test</button>
+		<p>Selected Planet:</p>
+		<label for = "name">Name:</label>
+		<input class = "stats" type= "text" name = "name" id="infoName" value=""><br>
+		<label for = "mass">Mass:</label>
+		<input class = "stats" type= "text" name = "mass" id="infoMass" value=""><br>
+		<label for = "radius">Radius:</label>
+		<input class = "stats" type= "text" name = "radius" id="infoRadius" value=""><br>
+		<label for = "posX">X Position:</label>
+		<input class = "stats" type= "text" name = "posX" id="infoX" value=""><br>
+		<label for = "posY">Y Position:</label>
+		<input class = "stats" type= "text" name = "posY" id="infoY" value=""><br>
+		<label for = "velocityX">X Velocity:</label>
+		<input class = "stats" type= "text" name = "velocityX" id="infoXVel" value=""><br>
+		<label for = "velocityY">Y Velocity:</label>
+		<input class = "stats" type= "text" name = "velocityY" id="infoYVel" value=""><br>
+		<label for = "accelerationX">X Accel:</label>
+		<input class = "stats" type= "text" name = "accelerationX" id="infoXAccel" value=""><br>
+		<label for = "accelerationY">Y Accel:</label>
+		<input class = "stats" type= "text" name = "accelerationY" id="infoYAccel" value="">
+		<button class = "removeButton" id = "remove">Remove Planet</button>
+		<p>Simulation Accuracy:</p>
+		<p id = "accuracy">Second for Second</p>
+		<p>Simulation Speed:</p>
+		<p id = "speed">30 Seconds Every Second</p>
+		
 	</div>
 	
 	<script src = "script.js"></script>
