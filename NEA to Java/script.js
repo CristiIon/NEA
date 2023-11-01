@@ -1,20 +1,4 @@
 // code
-/*
-async function timer(ms) {
-	let time = new Promise((resolve) =>{
-		setTimeout(() =>  {
-			done = true
-			resolve(true)
-		}, ms);
-	});
-	let finish = await time;
-	return finish;
-}
-*/
-function convertIntToStylePixels(size){
-	size += "px";
-	return size;
-}
 function makeBody(x, y, xVel, yVel, planetMass, planetRadius, planetName, planetColour){
 	const temp = {
 		posX:x,
@@ -409,8 +393,8 @@ function makeImages(Objects, distanceScale, viewHeight, viewWidth){
 }
 function movePlanets(xyPos){
 	for(let i = 0; i < xyPos.length; i++){
-		document.getElementById(i).style.left = convertIntToStylePixels(xyPos[i][0]-document.getElementById(i).width/2);
-		document.getElementById(i).style.top = convertIntToStylePixels(xyPos[i][1]-document.getElementById(i).height/2);
+		document.getElementById(i).style.left = xyPos[i][0]-document.getElementById(i).width/2 + screenMove.x + "px";
+		document.getElementById(i).style.top = xyPos[i][1]-document.getElementById(i).height/2 + screenMove.y + "px";
 		//console.log(xyPos[i][0]);
 	}
 }
@@ -419,12 +403,14 @@ function displayPlanets(Objects, distanceScale, viewHeight, viewWidth){
 	//console.log(xyPos);
 	movePlanets(xyPos);
 }
-async function cycle(Objects, time, trailsQueue, trailLenght, distanceScale, viewHeight, viewWidth){
-
-	for(; time.timeSimulated < time.timeLastImage + time.timeScale; time.timeSimulated+=time.timePerTick){
-		simulate(Objects, trailsQueue, trailLenght, time.timePerTick);
+async function cycle(Objects, simulating, time, trailsQueue, trailLenght, distanceScale, viewHeight, viewWidth){
+	if(simulating){
+			for(; time.timeSimulated < time.timeLastImage + time.timeScale; time.timeSimulated+=time.timePerTick){
+			simulate(Objects, trailsQueue, trailLenght, time.timePerTick);
+		}
+		time.timeLastImage = time.timeSimulated;
 	}
-	time.timeLastImage = time.timeSimulated;
+
 	
 	if(Date.now() >= time.UTCTimeLastImage + 30){
 		displayPlanets(Objects, distanceScale, viewHeight, viewWidth);
@@ -440,9 +426,50 @@ async function cycle(Objects, time, trailsQueue, trailLenght, distanceScale, vie
 	}
 	time.UTCTimeLastImage = Date.now();
 }
+function planetsInstance(){
+	
+	document.getElementById("planetView").onmousedown = async function(event){
+		await document.getElementById("planetView").requestPointerLock();
+		function moveMouse(event){
+			screenMove.x += event.movementX;
+			screenMove.y += event.movementY;
+		}
+		document.addEventListener("mousemove", moveMouse)
+		document.getElementById("planetView").onmouseup = function () {
+			document.removeEventListener("mousemove", moveMouse)
+			document.exitPointerLock();
+			imageDiv.onmouseup = null;
+		}
+	}
+	document.getElementById("pause").onclick = function() {
+		simulating = !simulating;
+	}
+	document.getElementById("reset").onclick = function() {
+		screenMove.x = 0;
+		screenMove.y = 0;
+	}
+	document.getElementById("slower").onclick = function () {timeChanger(time, false)}
+	document.getElementById("faster").onclick = function () {timeChanger(time, true)}
+	
+	let simulating = true;
+	let trailLenght = 12;
+	let trailsQueue = [];
+	const Objects = [];
+	let imageNeeded = true;
+	let imageLate = false;
+	
+	for(let i = 0; i < 5; i++){
+		Objects[i] = (makeBody(solarSystem[i].posX, solarSystem[i].posY, solarSystem[i].velocityX, solarSystem[i].velocityY, solarSystem[i].mass, solarSystem[i].radius, solarSystem[i].name, solarSystem[i].colour));
+	}
 
-document.getElementById("slower").onclick = function () {timeChanger(time, false)}
-document.getElementById("faster").onclick = function () {timeChanger(time, true)}
+	const distanceScale = largestDistanceFromCenter(Objects)*1.1;
+	trailsQueue = resetTrailQueue(trailsQueue, 12, Objects);
+	makeImages(Objects, distanceScale, viewHeight, viewWidth);
+	
+	setInterval( () => {cycle(Objects, simulating, time, trailsQueue, trailLenght, distanceScale, viewHeight, viewWidth)}, 0);
+	
+	console.log("end");
+}
 
 const viewWidth = window.innerWidth-304;
 //-300 to leave space on the right for instructions and other info
@@ -451,21 +478,25 @@ const viewHeight = window.innerHeight-54;
 //console.log(viewHeight);
 //both have -4 to account for the 2 px wide border
 
-document.getElementById("planetView").style.width = convertIntToStylePixels(viewWidth);
-document.getElementById("planetView").style.height = convertIntToStylePixels(viewHeight);
+document.getElementById("planetView").style.width = viewWidth + "px";
+document.getElementById("planetView").style.height = viewHeight + "px";
 //parsing to string and adding px at the end to make it working with .style.width
 
 const infoTabX = window.innerWidth-300;
 	
-document.getElementById("infoTab").style.left = convertIntToStylePixels(infoTabX);
-document.getElementById("infoTab").style.height = convertIntToStylePixels(window.innerHeight);
+document.getElementById("infoTab").style.left = infoTabX + "px";
+document.getElementById("infoTab").style.height = window.innerHeight + "px";
 
 const buttonSpaceY = window.innerHeight-54;
 
-document.getElementById("buttonSpace").style.height = convertIntToStylePixels(50);
-document.getElementById("buttonSpace").style.width = convertIntToStylePixels(viewWidth);
-document.getElementById("buttonSpace").style.top = convertIntToStylePixels(buttonSpaceY);
+document.getElementById("buttonSpace").style.height = 50 + "px";
+document.getElementById("buttonSpace").style.width = viewWidth + "px";
+document.getElementById("buttonSpace").style.top = buttonSpaceY + "px";
 
+const screenMove = {
+	x:0,
+	y:0
+}
 const time = {
 	timeSimulated:0,
 	timeScale:1,
@@ -474,175 +505,22 @@ const time = {
 	UTCTimeLastImage:Date.now()
 };
 
-async function main(){
-	
-	let simulating = true;
-	let trailLenght = 12;
-	let trailsQueue = [];
-	const solarSystem = [];
-	const extraObjects = [];
-	const Objects = [];
-	let imageNeeded = true;
-	let imageLate = false;
-	
-	solarSystem.push(makeBody(0, 0, 0, -0.19, 1.989e30, 696340000, "Sun", "yellow"));
-	solarSystem.push(makeBody(7.0311e10, 0, 0, 38.8e3, 3.285e23, 2439700, "Mercury", "gray"));
-	solarSystem.push(makeBody(1.082e11, 0, 0, 35.02e3, 4.867e24, 6051800, "Venus", "gray"));
-	solarSystem.push(makeBody(1.496e11, 0, 0, 29.78e3, 5.972e24, 6371000, "Earth", "green"));
-	solarSystem.push(makeBody(2.279e11, 0, 0, 24.07e3, 6.39e23, 3396200, "Mars", "red"));
+const solarSystem = [];
+const extraObjects = [];
 
-	solarSystem.push(makeBody(7.785e11, 0, 0, 13e3, 1.898e27, 69911000, "Jupiter", "dark yellow"));
-	solarSystem.push(makeBody(1.434e12, 0, 0, 9.68e3, 5.683e26, 58232000, "Saturn", "dark yellow"));
-	solarSystem.push(makeBody(2.871e12, 0, 0, 6.80e3, 8.681e25, 25362000, "Uranus", "dark cyan"));
-	solarSystem.push(makeBody(4.495e12, 0, 0, 5.43e3, 1.024e26, 24622000, "Neptune", "dark blue"));
+solarSystem.push(makeBody(0, 0, 0, -0.19, 1.989e30, 696340000, "Sun", "yellow"));
+solarSystem.push(makeBody(7.0311e10, 0, 0, 38.8e3, 3.285e23, 2439700, "Mercury", "gray"));
+solarSystem.push(makeBody(1.082e11, 0, 0, 35.02e3, 4.867e24, 6051800, "Venus", "gray"));
+solarSystem.push(makeBody(1.496e11, 0, 0, 29.78e3, 5.972e24, 6371000, "Earth", "green"));
+solarSystem.push(makeBody(2.279e11, 0, 0, 24.07e3, 6.39e23, 3396200, "Mars", "red"));
 
-	extraObjects.push(makeBody(-2e9, 0, 0, 9.108e4, 9.945e29, 74085000, "1Sun", "yellow"));
-	extraObjects.push(makeBody(2e9, 0, 0, -9.108e4, 9.945e29, 74085000, "2Sun", "yellow"));
-	
-	for(let i = 0; i < 5; i++){
-		Objects[i] = (makeBody(solarSystem[i].posX, solarSystem[i].posY, solarSystem[i].velocityX, solarSystem[i].velocityY, solarSystem[i].mass, solarSystem[i].radius, solarSystem[i].name, solarSystem[i].colour));
-		//console.log(makeBody(solarSystem[i].posX, solarSystem[i].posY, solarSystem[i].velocityX, solarSystem[i].velocityY, solarSystem[i].mass, solarSystem[i].radius, solarSystem[i].name, solarSystem[i].colour));
-		//console.log(Objects[i]);
-	}
-	//console.log(Objects[1]);
-	//console.log(Objects);
-	//console.log(Objects[1]);
+solarSystem.push(makeBody(7.785e11, 0, 0, 13e3, 1.898e27, 69911000, "Jupiter", "dark yellow"));
+solarSystem.push(makeBody(1.434e12, 0, 0, 9.68e3, 5.683e26, 58232000, "Saturn", "dark yellow"));
+solarSystem.push(makeBody(2.871e12, 0, 0, 6.80e3, 8.681e25, 25362000, "Uranus", "dark cyan"));
+solarSystem.push(makeBody(4.495e12, 0, 0, 5.43e3, 1.024e26, 24622000, "Neptune", "dark blue"));
 
-	const distanceScale = largestDistanceFromCenter(Objects)*1.1;
-	trailsQueue = resetTrailQueue(trailsQueue, 12, Objects);
-	makeImages(Objects, distanceScale, viewHeight, viewWidth);
-	
-	setInterval( () => {cycle(Objects, time, trailsQueue, trailLenght, distanceScale, viewHeight, viewWidth)}, 0);
-	
-	/*
-	for(let i = 0; i < 10000; i++){
-		if(time.timeLastImage + time.timeScale >= time.timeSimulated){
-			if(Date.now() >= time.UTCTimeLastImage + 33){
-				console.log("frame late by : " + (Date.now()-time.UTCTimeLastImage + 33));
-				displayPlanets(Objects, distanceScale, viewHeight, viewWidth);
-				time.URCTimeLastImage = Date.now();
-			}
-			else{
-				console.log("displaying");
-				setTimeout(()=>
-				{
-					displayPlanets(Objects, distanceScale, viewHeight, viewWidth);
-					time.URCTimeLastImage = Date.now();
-				}, 33-((Date.now()-time.UTCTimeLastImage)));
-			}
-		}
-		else if (imageNeeded && imageLate == false){
-			imageLate = true;
-			console.time("Image Late");
-		}
-		if (time.timeLastImage + time.timeScale < time.timeSimulated){
-			simulate(Objects, trailsQueue, trailLenght, time.timePerTick);
-			console.log("simulating");
-		}
-	}
-	*/
-	/*
-	for(let i = 0; i < 1000; i++){
-		if(time.timeLastImage + time.timeScale > time.timeSimulated){
-			console.log("simulating");
-			simulate(Objects, trailsQueue, trailLenght, time.timePerTick);
-			if(imageNeeded == true){
-				console.time("ImageLate");
-				imageLate = true;
-			}
-			time.timeSimulated += time.timePerTick;
-		}
-		else{
-			if(imageNeeded){
-				console.log("displaying");
-				try {
-					timer.terminate();
-					timer = undefined;
-				}
-				catch (err){
-					
-				}
-				timer = new Worker("timer.js");
-				timer.onmessage = function (event){
-					imageNeeded = true;
-				}
-				displayPlanets(Objects, distanceScale, viewHeight, viewWidth);
-				time.timeLastImage = time.timeSimulated;
-				if(imageLate){
-					console.timeEnd("imageLate");
-					imageLate = false;
-				}
-				imageNeeded = false;
-			}
-			else{
-				console.log("awaiting");
-				await timer.onmessage;
-			}
-		}
-	}
-	*/
-	/*
-	for(let i = 0; i < 100000000; i++){
-		
-		if(time.timeLastImage + time.timeScale > time.timeSimulated){
-			console.log("simulating")
-			simulate(Objects, trailsQueue, trailLenght, time.timePerTick);
-			if(imageNeeded == true && imageLate == false){
-				console.time("ImageLate")
-				imageLate = true;
-			}
-			time.timeSimulated += time.timePerTick;
-		}
-		else{
-			//await setTimeout(()=> {}, 5)
-			if(imageNeeded == true){
-				console.log("displaying image");
-				clearTimeout(timer);
-				console.log(timer);
-				
-				timer = new Promise((resolve) =>{
-					console.time("timer");
-					setTimeout(() =>  {
-						imageNeeded = true
-						console.timeEnd("timer");
-						resolve(true)
-					}, 15);
-				});
-				
-				
-				displayPlanets(Objects, distanceScale, viewHeight, viewWidth);
-				time.timeLastImage = time.timeSimulated;
-				if(imageLate){
-					console.timeEnd("imageLate");
-					imageLate = false;
-				}
-				imageNeeded = false;
-			}
-			
-		}
-		
-	}
-	*/
-	console.log("end");
-	/*
-	
-	while(simulating){
-		console.time("time since last image");
-		iterate(Objects, time, trailsQueue, trailLenght, distanceScale, viewHeight, viewWidth)
-	}
-	*/
-}
+extraObjects.push(makeBody(-2e9, 0, 0, 9.108e4, 9.945e29, 74085000, "1Sun", "yellow"));
+extraObjects.push(makeBody(2e9, 0, 0, -9.108e4, 9.945e29, 74085000, "2Sun", "yellow"));
 
 
-main();
-
-/*
-function tester(){
-	let done = false;
-	let a = timer(2000);
-	console.log(a);
-	setTimeout(()=>{console.log(a)},1000);
-	setTimeout(()=>{console.log(a); console.log(done)},3000);
-}
-tester();
-*/
+planetsInstance();

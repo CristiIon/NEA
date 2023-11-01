@@ -10,16 +10,10 @@ body {
 	color:white;
 	overflow:hidden;
 }
-#NoImage1 {
-	position:absolute;
-	width:100px;
-	height:100px;
-	background-color:blue;
-}
 #infoTab{
 	position:absolute;
 	width:300px;
-	top: 0px;
+	top:0px;
 	background-color:black;
 }
 #buttonSpace{
