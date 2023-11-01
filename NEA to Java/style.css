@@ -1,5 +1,9 @@
 body {
 	background-color:gray;
+	font-family:Sans-serif;
+}
+#status {
+	position:relative;
 }
 #planetView {
 	position:absolute;
