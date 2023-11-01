@@ -5,17 +5,36 @@
 	<link rel = "stylesheet" href = "style.css">
 </head>
 <body>
-	<div id = "planetView"><p id = "status"></p></div>
+	<div id = "planetView">
+		<p id = "status"></p>
+	</div>
 	
 	<div id = "buttonSpace">
-		<button class = "button" id = "slower">Slow Down</button>
-		<button class = "button" id = "faster">Speed Up</button>
-		<button class = "button" id = "pause">Pause</button>
-		<button class = "button" id = "reset">Reset View</button>
+		<button class = "viewButton" id = "slower">Slow Down</button>
+		<button class = "viewButton" id = "faster">Speed Up</button>
+		<button class = "viewButton" id = "pause">Pause</button>
+		<button class = "viewButton" id = "reset">Reset View</button>
+		<button class = "viewButton" id = "centre">Centre View</button>
+		<button class = "viewButton" id = "addPlanet">Add Planet</button>
 	</div>
 	
 	<div id = "infoTab">
-		<button  id = "test">test</button>
+		<p>Selected Planet:</p>
+		<p id = "infoName"></p>
+		<p id = "infoMass"></p>
+		<p id = "infoRadius"></p>
+		<p id = "infoX"></p>
+		<p id = "infoY"></p>
+		<p id = "infoXVel"></p>
+		<p id = "infoYVel"></p>
+		<p id = "infoXAccel"></p>
+		<p id = "infoYAccel"></p>
+		<button class = "removeButton" id = "remove">Remove Planet</button>
+		<p>Simulation Accuracy:</p>
+		<p id = "accuracy">Second for Second</p>
+		<p>Simulation Speed:</p>
+		<p id = "speed">30 Seconds Every Second</p>
+		
 	</div>
 	
 	<script src = "script.js"></script>
