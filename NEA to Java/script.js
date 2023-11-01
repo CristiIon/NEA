@@ -20,6 +20,13 @@ function makeBody(x, y, xVel, yVel, planetMass, planetRadius, planetName, planet
 	};
 	return temp;
 }
+function makeBodyListCopy(Objects){
+	let temp = [];
+	for(let i = 0; i < Objects.length; i++){
+		temp[i] = makeBody(Objects[i].posX, Objects[i].posY, Objects[i].velocityX, Objects[i].velocityY, Objects[i].mass, Objects[i].radius, Objects[i].name, Objects[i].colour);
+	}
+	return temp;
+}
 function removePlanet(Objects, id){
 	/*
 	console.log("removing id: " + id);
@@ -31,7 +38,6 @@ function removePlanet(Objects, id){
 	temp.parentNode.removeChild(temp);
 	
 	for(let i = id+1; i < Objects.length; i++){
-		console.log("looping");
 		document.getElementById(i.toString()).id = (i-1).toString();
 	}
 	
@@ -535,8 +541,10 @@ function displaySelectedPlanetStaticInfo(planet){
 	document.getElementById("infoMass").value = planet.mass + "kg";
 	document.getElementById("infoRadius").value = planet.radius + "m";
 }
-function planetsInstance(addingPlanet, Objects = []){
-	const SAVEPOINT = Objects;
+function planetsInstance(addingPlanet = false, Objects = []){
+	
+	const SAVEPOINT = makeBodyListCopy(Objects);
+	
 	function updateObjects(whatIsChanged, whatChangeTo){
 		switch (whatIsChanged){
 			case "name":
@@ -591,16 +599,17 @@ function planetsInstance(addingPlanet, Objects = []){
 	distanceScale = largestDistanceFromCenter(Objects)*1.1;
 	setOnScreenRadius(Objects, distanceScale);
 }
-	function makeImages(){
+	function makeImage(id){
 		let img;
 		let diameterOnDisplay;
-		for(let i = 0; i < Objects.length; i++){
+		
 			img = document.createElement("img");
 			img.userSelect = "none"
 			img.src = "images/whiteCircle.png";
-			img.id = i;
+			img.id = id;
 			img.style.position = "absolute";
 			img.zIndex = "1"; 
+			img.name = "planet";
 			img.onmousedown = function(event) {
 				
 				movingImage = true;
@@ -642,8 +651,8 @@ function planetsInstance(addingPlanet, Objects = []){
 			}
 			this.ondragstart = function() {return false;};
 			document.getElementById("planetView").appendChild(img);
-		}
-	setOnScreenRadius(Objects, distanceScale)
+		
+	
 	}
 	document.getElementById("planetView").addEventListener("wheel", function(event){
 		let newSize;
@@ -679,7 +688,7 @@ function planetsInstance(addingPlanet, Objects = []){
 			document.getElementById("planetView").onmouseup = null;
 		}
 	}
-	let stats = document.getElementsByClassName("stats")
+	let stats = document.getElementsByClassName("statsstats");
 	for(let i = 0; i < stats.length-2; i++){
 		stats[i].style.pointerEvents = "auto";
 		stats[i].addEventListener("blur", (event) => {
@@ -701,11 +710,13 @@ function planetsInstance(addingPlanet, Objects = []){
 	}
 	document.getElementById("pause").onclick = function() {
 		if(simulating){
+			document.getElementById("pause").innerHTML = "Unpause"
 			document.getElementById("status").innerHTML = "Paused";
 			document.getElementById("status").style.left = viewWidth/2 - 23 + "px";
 			document.getElementById("status").style.userSelect = "none";
 		}
 		else{
+			document.getElementById("pause").innerHTML = "Pause"
 			document.getElementById("status").innerHTML = "";
 		}
 		simulating = !simulating;
@@ -722,12 +733,23 @@ function planetsInstance(addingPlanet, Objects = []){
 		removePlanet(Objects, selectedPlanetID);
 		selectedPlanetID = 0;
 	}
-	document.getElementById("addPlanet").onclick = function() {planetsInstance(true, Objects)}
-	document.getElementById("reset").onclick = function () {
-		console.log("resetting");
+	document.getElementById("addPlanet").onclick = function() {
+		planetsInstance(true, Objects);
+		document.getElementById("addPlanet").innerHTML = "Confirm";
 	}
-	if(addingPlanet){
-		document.getElementById("addPlanet").innerHTML = "Confirm"
+	document.getElementById("rewind").onclick = function () {
+		for(let i = 0; i < Objects.length;){
+			removePlanet(Objects, i);
+		}
+		console.log("Objects: ");
+		console.log(Objects);
+		Objects = makeBodyListCopy(SAVEPOINT);
+		console.log("Save: ");
+		console.log(SAVEPOINT);
+		for(let i = 0; i < Objects.length; i++){
+			makeImage(i);
+		}
+		setOnScreenRadius(Objects);
 	}
 	
 	window.addEventListener("resize", setUpScreen);
@@ -744,13 +766,14 @@ function planetsInstance(addingPlanet, Objects = []){
 	let movingImage = false;
 	let changingInfo = null;
 	
-	for(let i = 0; i < 5; i++){
-		Objects[i] = (makeBody(solarSystem[i].posX, solarSystem[i].posY, solarSystem[i].velocityX, solarSystem[i].velocityY, solarSystem[i].mass, solarSystem[i].radius, solarSystem[i].name, solarSystem[i].colour));
-	}
+	
 
 	let distanceScale = largestDistanceFromCenter(Objects)*1.1;
 	trailsQueue = resetTrailQueue(trailsQueue, 12, Objects);
-	makeImages();
+	for(let i = document.getElementsByTagName("img").length; i < Objects.length; i++){
+		makeImage(i);
+	}
+	setOnScreenRadius(Objects, distanceScale);
 	setUpScreen();
 	displaySelectedPlanetStaticInfo(Objects[0]);
 	displaySelectedPlanetXYInfo(Objects[0]);
@@ -792,7 +815,9 @@ solarSystem.push(makeBody(4.495e12, 0, 0, 5.43e3, 1.024e26, 24622000, "Neptune",
 extraObjects.push(makeBody(-2e9, 0, 0, 9.108e4, 9.945e29, 74085000, "1Sun", "yellow"));
 extraObjects.push(makeBody(2e9, 0, 0, -9.108e4, 9.945e29, 74085000, "2Sun", "yellow"));
 
-planetsInstance();
+
+
+planetsInstance(false, solarSystem.slice(0,5));
 
 
 
