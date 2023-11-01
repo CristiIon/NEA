@@ -16,6 +16,7 @@
 		<button class = "viewButton" id = "reset">Reset View</button>
 		<button class = "viewButton" id = "centre">Centre View</button>
 		<button class = "viewButton" id = "addPlanet">Add Planet</button>
+		<button class = "viewButton" id = "cancel">Cancel Adding Planet</button>
 		<button class = "viewButton" id = "rewind">Reverse To Start</button>
 		<button class = "viewButton" id = "load">Load Preset</button>
 		<button class = "viewButton" id = "export">Export</button>
@@ -30,6 +31,26 @@
 		<input class = "stats" type= "text" name = "mass" id="infoMass" value=""><br>
 		<label for = "radius">Radius:</label>
 		<input class = "stats" type= "text" name = "radius" id="infoRadius" value=""><br>
+		<label for = "colour">Colour:</label>
+		<select class = "stats" id = "infoColour" name = "colour">
+			<option value = "darkRed">Dark Red</option>
+			<option value = "red">Red</option>
+			<option value = "darkOrange">Dark Orange</option>
+			<option value = "orange">Orange</option>
+			<option value = "darkYellow">Dark Yellow</option>
+			<option value = "yellow">Yellow</option>
+			<option value = "darkGreen">Dark Green</option>
+			<option value = "green">Green</option>
+			<option value = "darkCyan">Dark Cyan</option>
+			<option value = "cyan">Cyan</option>
+			<option value = "darkBlue">Dark Blue</option>
+			<option value = "blue">Blue</option>
+			<option value = "darkPurple">Dark Purple</option>
+			<option value = "purple">Purple</option>
+			<option value = "white">White</option>
+			<option value = "gray">Gray</option>
+			<option value = "darkGray">Dark Gray</option>
+		</select><br>
 		<label for = "posX">X Position:</label>
 		<input class = "stats" type= "text" name = "posX" id="infoX" value=""><br>
 		<label for = "posY">Y Position:</label>
@@ -47,6 +68,10 @@
 		<p id = "accuracy">Second for Second</p>
 		<p>Simulation Speed:</p>
 		<p id = "speed">30 Seconds Every Second</p>
+		
+	</div>
+		
+	<div id = "loadingTab">
 		
 	</div>
 	

@@ -2,6 +2,9 @@ body {
 	background-color:gray;
 	font-family:Sans-serif;
 }
+p {
+	user-select:none;
+}
 #status {
 	position:relative;
 	user-select:none;
@@ -14,6 +17,8 @@ body {
 	background-color:black;
 	color:white;
 	overflow:hidden;
+	z-Index:1;
+	text-align:center;
 }
 #infoTab{
 	color:white;
@@ -21,6 +26,7 @@ body {
 	width:300px;
 	top:0px;
 	background-color:black;
+	z-Index:1;
 }
 #buttonSpace{
 	left:0px;
@@ -28,13 +34,20 @@ body {
 	height:50px;
 	border:2px solid white;
 	background-color:black;
+	z-Index:1;
+}
+#loadingTab{
+	background-color:black;
+	border:2px solid white;
+	z-Index:0;
+	position:absolute;
 }
 .viewButton{
 	color: white;
 	background-color: black;
 	border:2px solid white;
 	height:100%;
-	width:10%;
+	width:9.09%;
 	float:left;
 }
 .viewButton:hover{
@@ -63,7 +76,7 @@ body {
 	background-color:black;
 	color:white;
 	font-size:16px;
-	pointer-events:none
+	pointer-events:none;
 }
 .planet{
 	user-select:none;
