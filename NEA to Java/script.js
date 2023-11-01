@@ -1,29 +1,32 @@
 // code
-function makeBody(x, y, xVel, yVel, planetMass, planetRadius, planetName, planetColour){
+function makeBody(highlighted, x = 0, y = 0, xVel = 0, yVel = 0, planetMass = 2710, planetRadius = 0.62, planetName = "New Planet", planetColour = "green"){
 	//creates an object with the specified attributes and returns it.
 	//intended for adding planets onto the Objects array.
+	//default values makes a stationary 2.71 ton asteroid with 1m volume at 0,0
+	//the reason for the specific mass and radius is for it to have an average asteroid density and 1m volume
 	const temp = {
 		posX:x,
-		posY:y,
+		posY:y,// xy coordinates in m from centre
 		velocityX:xVel,
-		velocityY:yVel,
+		velocityY:yVel,// m/s
 		accelerationX:0,
-		accelerationY:0,
-		//acceleration only holds its value for one frame, as acceleration is instantaneous to 
+		accelerationY:0,// m/s²
+		//acceleration does not need to be specified as acceleration is instantaneous, so it only needs to be stored fot the duration of one frame to 
 		//1) show on the infoTab as part of that planet's stats
-		//2) carry that value to velocityUpdate
-		//on the next fram acceleration is reset as its new value is completly independent of its previous one
-		mass:planetMass,
-		radius:planetRadius,
+		//2) carry that value from accelerationCalc() to velocityUpdate()
+		//on the next frame acceleration is reset as its new value is completly independent of its previous one
+		mass:planetMass, // kg
+		radius:planetRadius, // m
 		name:planetName,
-		colour:planetColour
+		colour:planetColour,
+		isHighlighted:highlighted
 	};
 	return temp;
 }
 function makeBodyListCopy(Objects){
 	let temp = [];
 	for(let i = 0; i < Objects.length; i++){
-		temp[i] = makeBody(Objects[i].posX, Objects[i].posY, Objects[i].velocityX, Objects[i].velocityY, Objects[i].mass, Objects[i].radius, Objects[i].name, Objects[i].colour);
+		temp[i] = makeBody(Objects[i].isHighlighted, Objects[i].posX, Objects[i].posY, Objects[i].velocityX, Objects[i].velocityY, Objects[i].mass, Objects[i].radius, Objects[i].name, Objects[i].colour);
 	}
 	return temp;
 }
@@ -237,6 +240,7 @@ function collision(Objects, object1, object2){
 	let newName;
     let newColour;
     let newID;
+	let newIsHighlighted = false;
     let removedID;
 	if(Objects[object1].mass > Objects[object2].mass){
 		newName = Objects[object1].name;
@@ -251,12 +255,14 @@ function collision(Objects, object1, object2){
         removedID = object1;
 	}
 	
-	const resultantObject = makeBody(newX, newY, newvelocityX, newvelocityY, newMass, newRadius, newName, newColour);
+	console.log(newIsHighlighted);
+	const resultantObject = makeBody(newIsHighlighted, newX, newY, newvelocityX, newvelocityY, newMass, newRadius, newName, newColour);
 	removePlanet(Objects, removedID);
 	Objects[newID] = resultantObject;
+	console.log(Objects);
 	
 }
-function collisionChecker(Objects, trailsQueue, trailLength){
+function collisionChecker(Objects, distanceScale, trailsQueue, trailLength){
 	const line1 = [];
 	const line2 = [];
 	const pointPlaceHolder = [0,0];
@@ -268,23 +274,23 @@ function collisionChecker(Objects, trailsQueue, trailLength){
 	let collisionOccured = false;
 	let distance;
 	
-	for(let i = 0; i < Objects.length-1; i++){
-		for(let j = i+1; j< Objects.length; j++){
-			distance = distanceCalc(Objects[i].posX, Objects[i].posY, Objects[j].posX, Objects[j].posY);
+	for(let planet1 = 0; planet1 < Objects.length-1; planet1++){
+		for(let planet2 = planet1+1; planet2 < Objects.length; planet2++){
+			distance = distanceCalc(Objects[planet1].posX, Objects[planet1].posY, Objects[planet2].posX, Objects[planet2].posY);
 			
-			if(Objects[i].radius + Objects[j].radius > distance){
+			if(Objects[planet1].radius + Objects[planet2].radius > distance){
 				collisionOccured = true;
 			}
 			else{
-				line1[0][0] = Objects[i].posX;
-                line1[0][1] = Objects[i].posY;
-                line1[1][0] = Objects[i].posX - Objects[i].velocityX;
-                line1[1][1] = Objects[i].posY - Objects[i].velocityY;
+				line1[0][0] = Objects[planet1].posX;
+                line1[0][1] = Objects[planet1].posY;
+                line1[1][0] = Objects[planet1].posX - Objects[planet1].velocityX;
+                line1[1][1] = Objects[planet1].posY - Objects[planet1].velocityY;
 				
-				line2[0][0] = Objects[j].posX;
-                line2[0][1] = Objects[j].posY;
-                line2[1][0] = Objects[j].posX - Objects[j].velocityX;
-                line2[1][1] = Objects[j].posY - Objects[j].velocityY;
+				line2[0][0] = Objects[planet2].posX;
+                line2[0][1] = Objects[planet2].posY;
+                line2[1][0] = Objects[planet2].posX - Objects[planet2].velocityX;
+                line2[1][1] = Objects[planet2].posY - Objects[planet2].velocityY;
 				
                 if (lineOverlapCheck(line1, line2))
                 {
@@ -292,7 +298,8 @@ function collisionChecker(Objects, trailsQueue, trailLength){
                 }
 			}
 			if(collisionOccured){
-				collision(Objects, i, j);
+				collision(Objects, planet1, planet2);
+				setOnScreenRadius(Objects, distanceScale);
                 //trailsQueue = trailQueueAdd(trailsQueue, trailLength, Objects);
                 collisionOccured = false;
 			}
@@ -420,9 +427,9 @@ function timeChanger(time, increase){
 	}
 	//console.log(time);
 }
-function simulate(Objects, trailsQueue, trailLength, timePerTick){
+function simulate(Objects, distanceScale, trailsQueue, trailLength, timePerTick){
 	
-	collisionChecker(Objects, trailsQueue, trailLength);
+	collisionChecker(Objects, distanceScale, trailsQueue, trailLength);
 	accelerationCalc(Objects);
 	velocityUpdate(Objects, timePerTick);
 	positionUpdate(Objects, timePerTick);
@@ -451,8 +458,8 @@ function setOnScreenRadius(Objects, distanceScale){
 	for(let i = 0; i < Objects.length; i++){
 		
 		diameterOnDisplay = (Objects[i].radius)/distanceScale*viewWidth*2
-		if (diameterOnDisplay < 2){
-			diameterOnDisplay = 2;
+		if (diameterOnDisplay < 4){
+			diameterOnDisplay = 4;
 		}
 		document.getElementById(i).width = diameterOnDisplay;
 		document.getElementById(i).height = diameterOnDisplay;
@@ -479,7 +486,7 @@ function displayPlanets(Objects, selectedPlanetID, centred, distanceScale, viewH
 async function cycle(Objects, selectedPlanetID, centred, simulating, changingInfo, time, trailsQueue, trailLength, distanceScale, viewHeight, viewWidth){
 	if(simulating){
 			for(; time.timeSimulated < time.timeLastImage + time.timeScale; time.timeSimulated+=time.timePerTick){
-			simulate(Objects, trailsQueue, trailLength, time.timePerTick);
+			simulate(Objects, distanceScale, trailsQueue, trailLength, time.timePerTick);
 		}
 		time.timeLastImage = time.timeSimulated;
 	}
@@ -541,9 +548,12 @@ function displaySelectedPlanetStaticInfo(planet){
 	document.getElementById("infoMass").value = planet.mass + "kg";
 	document.getElementById("infoRadius").value = planet.radius + "m";
 }
-function planetsInstance(addingPlanet = false, Objects = []){
-	
-	const SAVEPOINT = makeBodyListCopy(Objects);
+function planetsInstance(Objects = [], addingPlanet = false){
+
+	const SAVEPOINT = {
+		initialPlanets:makeBodyListCopy(Objects),
+		addingPlanet:[]
+	}
 	
 	function updateObjects(whatIsChanged, whatChangeTo){
 		switch (whatIsChanged){
@@ -575,84 +585,90 @@ function planetsInstance(addingPlanet = false, Objects = []){
 		}
 	}
 	function setUpScreen(){
-	viewWidth = window.innerWidth-304;
-	//-300 to leave space on the right for instructions and other info
-	viewHeight = window.innerHeight-54;
-	//-50 to leave space at the bottom for buttons
-	//console.log(viewHeight);
-	//both have -4 to account for the 2 px wide border
-	if(viewWidth < 800) viewWidth = 800;
-	if(viewHeight < 450) viewHeight = 450;
-	document.getElementById("planetView").style.width = viewWidth + "px";
-	document.getElementById("planetView").style.height = viewHeight + "px";
-	//parsing to string and adding px at the end to make it working with .style.width
+		viewWidth = window.innerWidth-304;
+		//-300 to leave space on the right for instructions and other info
+		viewHeight = window.innerHeight-54;
+		//-50 to leave space at the bottom for buttons
+		//console.log(viewHeight);
+		//both have -4 to account for the 2 px wide border
+		if(viewWidth < 800) viewWidth = 800;
+		if(viewHeight < 450) viewHeight = 450;
+		document.getElementById("planetView").style.width = viewWidth + "px";
+		document.getElementById("planetView").style.height = viewHeight + "px";
+		//parsing to string and adding px at the end to make it working with .style.width
 	
-	document.getElementById("infoTab").style.left = viewWidth + 4 + "px";
-	document.getElementById("infoTab").style.height = viewHeight + 54 + "px";
+		document.getElementById("infoTab").style.left = viewWidth + 4 + "px";
+		document.getElementById("infoTab").style.height = viewHeight + 54 + "px";
 
-	document.getElementById("buttonSpace").style.height = 50 + "px";
-	document.getElementById("buttonSpace").style.width = viewWidth + "px";
-	document.getElementById("buttonSpace").style.top = viewHeight + "px";
+		document.getElementById("buttonSpace").style.height = 50 + "px";
+		document.getElementById("buttonSpace").style.width = viewWidth + "px";
+		document.getElementById("buttonSpace").style.top = viewHeight + "px";
 
-	document.getElementById("status").style.left = viewWidth/2 - 35 + "px";
+		document.getElementById("status").style.left = viewWidth/2 - 35 + "px";
 	
-	distanceScale = largestDistanceFromCenter(Objects)*1.1;
-	setOnScreenRadius(Objects, distanceScale);
-}
+		distanceScale = largestDistanceFromCenter(Objects)*1.1;
+		setOnScreenRadius(Objects, distanceScale);
+		document.getElementById("status").style.left = viewWidth/2 - 30 + "px";
+	}
 	function makeImage(id){
 		let img;
 		let diameterOnDisplay;
 		
-			img = document.createElement("img");
-			img.userSelect = "none"
-			img.src = "images/whiteCircle.png";
-			img.id = id;
-			img.style.position = "absolute";
+		img = document.createElement("img");
+		img.userSelect = "none"
+		img.id = id.toString();
+		img.style.position = "absolute";
+		img.name = "planet";
+		if(Objects[id].isHighlighted){
+			img.zIndex = "2"; 
+			img.src = "images/greenCircle.png";
+		}
+		else{
 			img.zIndex = "1"; 
-			img.name = "planet";
-			img.onmousedown = function(event) {
-				
-				movingImage = true;
-				const IMAGEID = this.id;
-				if(!centred) selectedPlanetID = parseInt(IMAGEID);
-				this.zIndex = "2";
+			img.src = "images/whiteCircle.png";
+		}
+		img.onmousedown = function(event) {
 			
-				xMouseOnPlanet = event.clientX - this.getBoundingClientRect().left - this.offsetWidth/2 + 2;
-				YMouseOnPlanet = event.clientY - this.getBoundingClientRect().top - this.offsetHeight/2 + 2;
-				
-				//xMouseOnPlanet and the y counterpart are used to keep track of where the mouse was initially when the planet was clicked.
-				//we dont want the planet that was clicked on to snap to the cursor if it was not clicked directly in the centre
-			
-				move(event.pageX, event.pageY);
-				
-				function move(mouseX, mouseY){
-					//equasion derived from: point[0] = viewWidth/2 + (Objects[i].posX / distanceScale) * (viewWidth - 2) / 2 (from XYposToDisplay() function)
-					//which finds the on-screen position of planets, point[0] using the position in the simulation, Objects[i].posX
-					//derived by trying to find Objects[i].posX(actual position in simulation) in terms of the other variables,
-					Objects[IMAGEID].posX = distanceScale*((2*(mouseX-xMouseOnPlanet-screenMove.x)-viewWidth)/(viewWidth-2));
-					Objects[IMAGEID].posY = distanceScale*((2*(mouseY-YMouseOnPlanet-screenMove.y)-viewHeight)/(2-viewWidth));
-				}
-			
-				function mouseMove(event){
-					move(event.pageX, event.pageY);
-					//Objects[IMAGEID].posX += event.movementX * ((distanceScale*2)/viewWidth);
-					//Objects[IMAGEID].posY -= event.movementY * ((distanceScale*2)/viewWidth);
-				}
-			
-				document.addEventListener("mousemove", mouseMove);
-			
-				this.onmouseup = function(){
-					movingImage = false;
-					this.zIndex = "1";
-					document.removeEventListener("mousemove", mouseMove);
-					this.onmouseup = null;
-				}
-				displaySelectedPlanetStaticInfo(Objects[parseInt(IMAGEID)]);
-			}
-			this.ondragstart = function() {return false;};
-			document.getElementById("planetView").appendChild(img);
+			movingImage = true;
+			const IMAGEID = this.id;
+			if(!centred) selectedPlanetID = parseInt(IMAGEID);
+			this.zIndex = "2";
 		
-	
+			xMouseOnPlanet = event.clientX - this.getBoundingClientRect().left - this.offsetWidth/2 + 2;
+			YMouseOnPlanet = event.clientY - this.getBoundingClientRect().top - this.offsetHeight/2 + 2;
+			
+			//xMouseOnPlanet and the y counterpart are used to keep track of where the mouse was initially when the planet was clicked.
+			//we dont want the planet that was clicked on to snap to the cursor if it was not clicked directly in the centre
+		
+			move(event.pageX, event.pageY);
+			
+			function move(mouseX, mouseY){
+				//equasion derived from: point[0] = viewWidth/2 + (Objects[i].posX / distanceScale) * (viewWidth - 2) / 2 (from XYposToDisplay() function)
+				//which finds the on-screen position of planets, point[0] using the position in the simulation, Objects[i].posX
+				//derived by trying to find Objects[i].posX(actual position in simulation) in terms of the other variables,
+				Objects[IMAGEID].posX = distanceScale*((2*(mouseX-xMouseOnPlanet-screenMove.x)-viewWidth)/(viewWidth-2));
+				Objects[IMAGEID].posY = distanceScale*((2*(mouseY-YMouseOnPlanet-screenMove.y)-viewHeight)/(2-viewWidth));
+			}
+		
+			function mouseMove(event){
+				move(event.pageX, event.pageY);
+				//Objects[IMAGEID].posX += event.movementX * ((distanceScale*2)/viewWidth);
+				//Objects[IMAGEID].posY -= event.movementY * ((distanceScale*2)/viewWidth);
+			}
+		
+			document.addEventListener("mousemove", mouseMove);
+		
+			this.onmouseup = function(){
+				movingImage = false;
+				this.zIndex = "1";
+				document.removeEventListener("mousemove", mouseMove);
+				this.onmouseup = null;
+			}
+			displaySelectedPlanetStaticInfo(Objects[parseInt(IMAGEID)]);
+		}
+		this.ondragstart = function() {return false;};
+		document.getElementById("planetView").appendChild(img);
+		
 	}
 	document.getElementById("planetView").addEventListener("wheel", function(event){
 		let newSize;
@@ -670,7 +686,7 @@ function planetsInstance(addingPlanet = false, Objects = []){
 			screenMove.x /= 1.1;
 			screenMove.y /= 1.1;
 		}
-		setOnScreenRadius(Objects, distanceScale)
+		setOnScreenRadius(Objects, distanceScale);
 		//console.log(screenMove);
 	});
 	document.getElementById("planetView").onmousedown = async function(event){
@@ -688,7 +704,7 @@ function planetsInstance(addingPlanet = false, Objects = []){
 			document.getElementById("planetView").onmouseup = null;
 		}
 	}
-	let stats = document.getElementsByClassName("statsstats");
+	let stats = document.getElementsByClassName("stats");
 	for(let i = 0; i < stats.length-2; i++){
 		stats[i].style.pointerEvents = "auto";
 		stats[i].addEventListener("blur", (event) => {
@@ -710,13 +726,14 @@ function planetsInstance(addingPlanet = false, Objects = []){
 	}
 	document.getElementById("pause").onclick = function() {
 		if(simulating){
-			document.getElementById("pause").innerHTML = "Unpause"
+			document.getElementById("pause").innerHTML = "Unpause";
 			document.getElementById("status").innerHTML = "Paused";
-			document.getElementById("status").style.left = viewWidth/2 - 23 + "px";
-			document.getElementById("status").style.userSelect = "none";
 		}
 		else{
-			document.getElementById("pause").innerHTML = "Pause"
+			if(addingPlanet){
+				SAVEPOINT.addingPlanet = makeBodyListCopy(Objects);
+			}
+			document.getElementById("pause").innerHTML = "Pause";
 			document.getElementById("status").innerHTML = "";
 		}
 		simulating = !simulating;
@@ -727,29 +744,53 @@ function planetsInstance(addingPlanet = false, Objects = []){
 		distanceScale = largestDistanceFromCenter(Objects)*1.1;
 		setOnScreenRadius(Objects, distanceScale);
 	}
-	document.getElementById("slower").onclick = function () {timeChanger(time, false)}
-	document.getElementById("faster").onclick = function () {timeChanger(time, true)}
+	document.getElementById("slower").onclick = function () {timeChanger(time, false);}
+	document.getElementById("faster").onclick = function () {timeChanger(time, true);}
 	document.getElementById("remove").onclick = function() {
 		removePlanet(Objects, selectedPlanetID);
 		selectedPlanetID = 0;
 	}
 	document.getElementById("addPlanet").onclick = function() {
-		planetsInstance(true, Objects);
-		document.getElementById("addPlanet").innerHTML = "Confirm";
+		if(!addingPlanet){
+			addingPlanet = true;
+			simulating = false;
+			document.getElementById("pause").innerHTML = "Unpause";
+			document.getElementById("status").innerHTML = "Paused";
+			document.getElementById("addPlanet").innerHTML = "Confirm";
+			document.getElementById("load").disabled = true;
+			document.getElementById("export").disabled = true;
+			document.getElementById("import").disabled = true;
+			//console.log(Objects);
+			Objects.push(makeBody(true));
+			SAVEPOINT.addingPlanet = makeBodyListCopy(Objects);
+			makeImage(Objects.length-1, true);
+			//console.log(Objects.length-1);
+			//console.log(Objects);
+			setOnScreenRadius(Objects, distanceScale);
+			
+			makeImage();
+		}
 	}
 	document.getElementById("rewind").onclick = function () {
+		console.log(SAVEPOINT.addingPlanet);
 		for(let i = 0; i < Objects.length;){
 			removePlanet(Objects, i);
 		}
-		console.log("Objects: ");
+		
+		if(!addingPlanet) Objects = makeBodyListCopy(SAVEPOINT.initialPlanets);
+		else Objects = makeBodyListCopy(SAVEPOINT.addingPlanet);
 		console.log(Objects);
-		Objects = makeBodyListCopy(SAVEPOINT);
-		console.log("Save: ");
-		console.log(SAVEPOINT);
 		for(let i = 0; i < Objects.length; i++){
 			makeImage(i);
 		}
-		setOnScreenRadius(Objects);
+		
+		time.timeScale = 1;
+		time.timePerTick = 1;
+		distanceScale = largestDistanceFromCenter(Objects)*1.1;
+		setOnScreenRadius(Objects, distanceScale);
+		simulating = false;
+		document.getElementById("pause").innerHTML = "Unpause";
+		document.getElementById("status").innerHTML = "Paused";
 	}
 	
 	window.addEventListener("resize", setUpScreen);
@@ -765,18 +806,24 @@ function planetsInstance(addingPlanet = false, Objects = []){
 	let centred = false;
 	let movingImage = false;
 	let changingInfo = null;
-	
-	
-
 	let distanceScale = largestDistanceFromCenter(Objects)*1.1;
+	
 	trailsQueue = resetTrailQueue(trailsQueue, 12, Objects);
-	for(let i = document.getElementsByTagName("img").length; i < Objects.length; i++){
+	for(let i = 0; i < Objects.length; i++){
 		makeImage(i);
 	}
 	setOnScreenRadius(Objects, distanceScale);
 	setUpScreen();
 	displaySelectedPlanetStaticInfo(Objects[0]);
 	displaySelectedPlanetXYInfo(Objects[0]);
+	
+	if(addingPlanet){
+		simulating = false;
+		document.getElementById("pause").innerHTML = "Unpause"
+		document.getElementById("status").innerHTML = "Paused";
+		document.getElementById("status").style.left = viewWidth/2 - 30 + "px";
+	}
+	
 	let simulation = setInterval( () => {cycle(Objects, selectedPlanetID, centred, simulating, changingInfo, time, trailsQueue, trailLength, distanceScale, viewHeight, viewWidth)}, 0);
 	
 }
@@ -801,23 +848,23 @@ const time = {
 const solarSystem = [];
 const extraObjects = [];
 
-solarSystem.push(makeBody(0, 0, 0, -0.18899, 1.989e30, 696340000, "Sun", "yellow"));
-solarSystem.push(makeBody(7.0311e10, 0, 0, 38.8e3, 3.285e23, 2439700, "Mercury", "gray"));
-solarSystem.push(makeBody(1.082e11, 0, 0, 35.02e3, 4.867e24, 6051800, "Venus", "gray"));
-solarSystem.push(makeBody(1.496e11, 0, 0, 29.78e3, 5.972e24, 6371000, "Earth", "green"));
-solarSystem.push(makeBody(2.279e11, 0, 0, 24.07e3, 6.39e23, 3396200, "Mars", "red"));
+solarSystem.push(makeBody(false, 0, 0, 0, -0.18899, 1.989e30, 696340000, "Sun", "yellow"));
+solarSystem.push(makeBody(false, 7.0311e10, 0, 0, 38.8e3, 3.285e23, 2439700, "Mercury", "gray"));
+solarSystem.push(makeBody(false, 1.082e11, 0, 0, 35.02e3, 4.867e24, 6051800, "Venus", "gray"));
+solarSystem.push(makeBody(false, 1.496e11, 0, 0, 29.78e3, 5.972e24, 6371000, "Earth", "green"));
+solarSystem.push(makeBody(false, 2.279e11, 0, 0, 24.07e3, 6.39e23, 3396200, "Mars", "red"));
 
-solarSystem.push(makeBody(7.785e11, 0, 0, 13e3, 1.898e27, 69911000, "Jupiter", "dark yellow"));
-solarSystem.push(makeBody(1.434e12, 0, 0, 9.68e3, 5.683e26, 58232000, "Saturn", "dark yellow"));
-solarSystem.push(makeBody(2.871e12, 0, 0, 6.80e3, 8.681e25, 25362000, "Uranus", "dark cyan"));
-solarSystem.push(makeBody(4.495e12, 0, 0, 5.43e3, 1.024e26, 24622000, "Neptune", "dark blue"));
+solarSystem.push(makeBody(false, 7.785e11, 0, 0, 13e3, 1.898e27, 69911000, "Jupiter", "dark yellow"));
+solarSystem.push(makeBody(false, 1.434e12, 0, 0, 9.68e3, 5.683e26, 58232000, "Saturn", "dark yellow"));
+solarSystem.push(makeBody(false, 2.871e12, 0, 0, 6.80e3, 8.681e25, 25362000, "Uranus", "dark cyan"));
+solarSystem.push(makeBody(false, 4.495e12, 0, 0, 5.43e3, 1.024e26, 24622000, "Neptune", "dark blue"));
 
-extraObjects.push(makeBody(-2e9, 0, 0, 9.108e4, 9.945e29, 74085000, "1Sun", "yellow"));
-extraObjects.push(makeBody(2e9, 0, 0, -9.108e4, 9.945e29, 74085000, "2Sun", "yellow"));
+extraObjects.push(makeBody(false, -2e9, 0, 0, 9.108e4, 9.945e29, 74085000, "1Sun", "yellow"));
+extraObjects.push(makeBody(false, 2e9, 0, 0, -9.108e4, 9.945e29, 74085000, "2Sun", "yellow"));
 
 
 
-planetsInstance(false, solarSystem.slice(0,5));
+planetsInstance(solarSystem.slice(0,5));
 
 
 
