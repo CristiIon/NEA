@@ -8,6 +8,7 @@ body {
 	border:2px solid white;
 	background-color:black;
 	color:white;
+	overflow:hidden;
 }
 #NoImage1 {
 	position:absolute;
@@ -20,4 +21,23 @@ body {
 	width:300px;
 	top: 0px;
 	background-color:black;
+}
+#buttonSpace{
+	left:0px;
+	position:absolute;
+	height:50px;
+	border:2px solid white;
+	background-color:black;
+}
+.button{
+	color: white;
+	background-color: black;
+	border:2px solid white;
+	height:100%;
+	width:10%;
+	float:left;
+}
+.button:hover{
+	color:black;
+	background-color: white;
 }

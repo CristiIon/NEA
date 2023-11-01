@@ -308,43 +308,48 @@ function secondsSimplifier(seconds){
                 return seconds + " seconds";
             }
 }
-function timeChanger(timeScale, timePerTickInSec, increase){
+function timeChanger(time, increase){
 	const timeScales = [1, 5, 10, 30, 60, 120, 600, 1800, 3600, 7200, 14400, 43200, 86400, 172800, 345600, 604800, 1209600, 2419200];
 	//timeScales: 1s, 5s, 10s, 30s, 1min, 2mins, 10mins, 30mins, 1hour, 2hours, 4hours, 1day, 2days, 4days, 1week, 2weeks, 4weeks
-	let scalePosition;
-	let tickPosiotion;
+	let scalePosition = 0;
+	let tickPosition = 0;
 	
-	for (scalePosition = 0; scalePosition < timeScales.Length; scalePosition++)
+	for (; scalePosition < timeScales.length; scalePosition++)
     {
-        if (timeScale == timeScales[scalePosition])
+        if (time.timeScale == timeScales[scalePosition])
         {
             break;
         }
     }
-	for (tickPosition = 0; tickPosition < timeScales.Length; tickPosition++)
+	for (; tickPosition < timeScales.length; tickPosition++)
     {
-        if (timePerTickInSec == timeScales[tickPosition])
+		//console.log(tickPosition);
+        if (time.timePerTick == timeScales[tickPosition])
         {
+			
             break;
         }
     }
-	if (increase == true && scalePosition < timeScales.Count() - 1)
+	if (increase == true && scalePosition < timeScales.length - 1)
     {
-        timeScale = timeScales[scalePosition + 1];
+        time.timeScale = timeScales[scalePosition + 1];
+		//console.log(tickPosition < scalePosition - 4 && timeScales[tickPosition + 1] <= 60 * 60)
         if (tickPosition < scalePosition - 4 && timeScales[tickPosition + 1] <= 60 * 60)
         {
-            timePerTickInSec = timeScales[tickPosition + 1];
+			//console.log(tickPosition);
+            time.timePerTick = timeScales[tickPosition + 1];
         }
     }
 	else if (increase == false && scalePosition > 0)
     {
-        timeScale = timeScales[scalePosition - 1];
+        time.timeScale = timeScales[scalePosition - 1];
 
         if (tickPosition > scalePosition - 6 && tickPosition > 0)
         {
-            timePerTickInSec = timeScales[tickPosition - 1];
+            time.timePerTick = timeScales[tickPosition - 1];
         }
     }
+	//console.log(time);
 }
 function simulate(Objects, trailsQueue, trailLenght, timePerTick){
 	
@@ -360,7 +365,7 @@ function XYposToDisplay(Objects, distanceScale, viewHeight, viewWidth){
 	let point;
 	let restrictingViewParameter;
 	
-	if (viewHeight > viewWidth){
+	if (viewHeight < viewWidth){
 		restrictingViewParameter = viewWidth;
 	}
 	else{
@@ -414,55 +419,64 @@ function displayPlanets(Objects, distanceScale, viewHeight, viewWidth){
 	//console.log(xyPos);
 	movePlanets(xyPos);
 }
+async function cycle(Objects, time, trailsQueue, trailLenght, distanceScale, viewHeight, viewWidth){
 
-/*
-async function iterate(Objects, time, trailsQueue, trailLenght, distanceScale, viewHeight, viewWidth, display){
-	
-
-	
-	simulate(Objects, trailsQueue, trailLenght, time.timePerTick);
-	time.timeSimulated += time.timePerTick;
-	
-	displayPlanets(Objects, distanceScale, viewHeight, viewWidth);
+	for(; time.timeSimulated < time.timeLastImage + time.timeScale; time.timeSimulated+=time.timePerTick){
+		simulate(Objects, trailsQueue, trailLenght, time.timePerTick);
+	}
 	time.timeLastImage = time.timeSimulated;
 	
-	if(display){
-		
+	if(Date.now() >= time.UTCTimeLastImage + 30){
+		displayPlanets(Objects, distanceScale, viewHeight, viewWidth);
+		console.log("image late by: " + (Date.now() - time.UTCTimeLastImage - 30));
 	}
-	else if (time.timeLastImage + time.timeScale <= time.timeSimulated && console.timeLog("time since last image") < 20){
-		setTimeout(displayPlanets(), 20-console.Log("time since last image"), Objects, distanceScale, viewHeight, viewWidth);
+	
+	else{
+		await new Promise ( (resolve) => {
+			setTimeout( () => {
+				displayPlanets(Objects, distanceScale, viewHeight, viewWidth);
+			}, 30-(Date.now()-time.UTCTimeLastImage))
+		});
 	}
+	time.UTCTimeLastImage = Date.now();
 }
-*/
+
+document.getElementById("slower").onclick = function () {timeChanger(time, false)}
+document.getElementById("faster").onclick = function () {timeChanger(time, true)}
+
+const viewWidth = window.innerWidth-304;
+//-300 to leave space on the right for instructions and other info
+const viewHeight = window.innerHeight-54;
+//-50 to leave space at the bottom for buttons
+//console.log(viewHeight);
+//both have -4 to account for the 2 px wide border
+
+document.getElementById("planetView").style.width = convertIntToStylePixels(viewWidth);
+document.getElementById("planetView").style.height = convertIntToStylePixels(viewHeight);
+//parsing to string and adding px at the end to make it working with .style.width
+
+const infoTabX = window.innerWidth-300;
+	
+document.getElementById("infoTab").style.left = convertIntToStylePixels(infoTabX);
+document.getElementById("infoTab").style.height = convertIntToStylePixels(window.innerHeight);
+
+const buttonSpaceY = window.innerHeight-54;
+
+document.getElementById("buttonSpace").style.height = convertIntToStylePixels(50);
+document.getElementById("buttonSpace").style.width = convertIntToStylePixels(viewWidth);
+document.getElementById("buttonSpace").style.top = convertIntToStylePixels(buttonSpaceY);
+
+const time = {
+	timeSimulated:0,
+	timeScale:1,
+	timeLastImage:-100,
+	timePerTick:1,
+	UTCTimeLastImage:Date.now()
+};
 
 async function main(){
-	const viewWidth = window.innerWidth-304;
-	//-300 to leave space on the right for instructions and other info
-	const viewHeight = window.innerHeight-54;
-	//-50 to leave space at the bottom for buttons
-	//console.log(viewHeight);
-	//both have -4 to account for the 2 px wide border
-
-	document.getElementById("planetView").style.width = convertIntToStylePixels(viewWidth);
-	document.getElementById("planetView").style.height = convertIntToStylePixels(viewHeight);
-	//parsing to string and adding px at the end to make it working with .style.width
-	
-	const infoTabWidth = 300
-	const infoTabX = window.innerWidth-300;
-	
-	document.getElementById("infoTab").style.left = convertIntToStylePixels(infoTabX);
-	document.getElementById("infoTab").style.height = convertIntToStylePixels(window.innerHeight);
-	
-	//simulates 66.6 ticks per second.
-	//c# one simulates 3600 ticks per second
 	
 	let simulating = true;
-	const time = {
-		timeSimulated:0,
-		timeScale:100,
-		timeLastImage:-100,
-		timePerTick:1
-	};
 	let trailLenght = 12;
 	let trailsQueue = [];
 	const solarSystem = [];
@@ -498,6 +512,36 @@ async function main(){
 	trailsQueue = resetTrailQueue(trailsQueue, 12, Objects);
 	makeImages(Objects, distanceScale, viewHeight, viewWidth);
 	
+	setInterval( () => {cycle(Objects, time, trailsQueue, trailLenght, distanceScale, viewHeight, viewWidth)}, 0);
+	
+	/*
+	for(let i = 0; i < 10000; i++){
+		if(time.timeLastImage + time.timeScale >= time.timeSimulated){
+			if(Date.now() >= time.UTCTimeLastImage + 33){
+				console.log("frame late by : " + (Date.now()-time.UTCTimeLastImage + 33));
+				displayPlanets(Objects, distanceScale, viewHeight, viewWidth);
+				time.URCTimeLastImage = Date.now();
+			}
+			else{
+				console.log("displaying");
+				setTimeout(()=>
+				{
+					displayPlanets(Objects, distanceScale, viewHeight, viewWidth);
+					time.URCTimeLastImage = Date.now();
+				}, 33-((Date.now()-time.UTCTimeLastImage)));
+			}
+		}
+		else if (imageNeeded && imageLate == false){
+			imageLate = true;
+			console.time("Image Late");
+		}
+		if (time.timeLastImage + time.timeScale < time.timeSimulated){
+			simulate(Objects, trailsQueue, trailLenght, time.timePerTick);
+			console.log("simulating");
+		}
+	}
+	*/
+	/*
 	for(let i = 0; i < 1000; i++){
 		if(time.timeLastImage + time.timeScale > time.timeSimulated){
 			console.log("simulating");
@@ -536,7 +580,7 @@ async function main(){
 			}
 		}
 	}
-	
+	*/
 	/*
 	for(let i = 0; i < 100000000; i++){
 		
