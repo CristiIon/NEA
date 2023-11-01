@@ -20,6 +20,24 @@ function makeBody(x, y, xVel, yVel, planetMass, planetRadius, planetName, planet
 	};
 	return temp;
 }
+function removePlanet(Objects, id){
+	/*
+	console.log("removing id: " + id);
+	console.log("with name: " + Objects[id].name);
+	*/
+	
+	
+	let temp = document.getElementById(id.toString());
+	temp.parentNode.removeChild(temp);
+	
+	for(let i = id+1; i < Objects.length; i++){
+		console.log("looping");
+		document.getElementById(i.toString()).id = (i-1).toString();
+	}
+	
+	Objects.splice(id, 1);
+	
+}
 function distanceCalc(x1, y1, x2, y2){
 	let distance = ((x1-x2)**2)+((y1-y2)**2);
 	//console.log("distance: " + distance);
@@ -228,9 +246,9 @@ function collision(Objects, object1, object2){
 	}
 	
 	const resultantObject = makeBody(newX, newY, newvelocityX, newvelocityY, newMass, newRadius, newName, newColour);
-	
+	removePlanet(Objects, removedID);
 	Objects[newID] = resultantObject;
-	Objects.splice(removedID, 1);
+	
 }
 function collisionChecker(Objects, trailsQueue, trailLength){
 	const line1 = [];
@@ -268,8 +286,8 @@ function collisionChecker(Objects, trailsQueue, trailLength){
                 }
 			}
 			if(collisionOccured){
-				Objects = collision(Objects, i, j);
-                trailsQueue = trailQueueAdd(trailsQueue, trailLength, Objects);
+				collision(Objects, i, j);
+                //trailsQueue = trailQueueAdd(trailsQueue, trailLength, Objects);
                 collisionOccured = false;
 			}
 		}
@@ -372,6 +390,7 @@ function timeChanger(time, increase){
 	if (increase == true && scalePosition < timeScales.length - 1)
     {
         time.timeScale = timeScales[scalePosition + 1];
+		
 		//console.log(tickPosition < scalePosition - 4 && timeScales[tickPosition + 1] <= 60 * 60)
         if (tickPosition < scalePosition - 4 && timeScales[tickPosition + 1] <= 60 * 60)
         {
@@ -388,6 +407,11 @@ function timeChanger(time, increase){
             time.timePerTick = timeScales[tickPosition - 1];
         }
     }
+	document.getElementById("speed").innerHTML = secondsSimplifier(time.timeScale*30) + " Every Second";
+	if(time.timePerTick == 1) document.getElementById("accuracy").innerHTML = "Second for Second";
+	else{
+		document.getElementById("accuracy").innerHTML = "Every " + secondsSimplifier(time.timePerTick);
+	}
 	//console.log(time);
 }
 function simulate(Objects, trailsQueue, trailLength, timePerTick){
@@ -439,34 +463,45 @@ function displayPlanets(Objects, distanceScale, viewHeight, viewWidth){
 	//console.log(xyPos);
 	movePlanetsOnScreen(xyPos);
 }
-async function cycle(Objects, simulating, time, trailsQueue, trailLength, distanceScale, viewHeight, viewWidth){
+async function cycle(Objects, selectedPlanetID, simulating, time, trailsQueue, trailLength, distanceScale, viewHeight, viewWidth){
 	if(simulating){
 			for(; time.timeSimulated < time.timeLastImage + time.timeScale; time.timeSimulated+=time.timePerTick){
 			simulate(Objects, trailsQueue, trailLength, time.timePerTick);
 		}
 		time.timeLastImage = time.timeSimulated;
 	}
-
+	
 	
 	if(Date.now() >= time.UTCTimeLastImage + 30){
 		displayPlanets(Objects, distanceScale, viewHeight, viewWidth);
+		displaySelectedPlanetInfo(Objects[selectedPlanetID]);
 		//console.log("image late by: " + (Date.now() - time.UTCTimeLastImage - 30));
 	}
 	
 	else{
 		await new Promise ( (resolve) => {
 			setTimeout( () => {
+				//console.log(selectedPlanetID);
 				displayPlanets(Objects, distanceScale, viewHeight, viewWidth);
+				displaySelectedPlanetInfo(Objects[selectedPlanetID]);
 			}, 30-(Date.now()-time.UTCTimeLastImage))
 		});
 	}
 	time.UTCTimeLastImage = Date.now();
 }
-function changeCentredPlanet(id){
-	centredPlanet = id;
-	console.log("a");
+function displaySelectedPlanetInfo(planet){
+	document.getElementById("infoName").innerHTML = "Name: " + planet.name;
+	document.getElementById("infoMass").innerHTML = "Mass: " + planet.mass + "kg";
+	document.getElementById("infoRadius").innerHTML = "Radius: " + planet.radius + "m";
+	document.getElementById("infoX").innerHTML = "X Position: " + planet.posX.toPrecision(4) + "m";
+	document.getElementById("infoY").innerHTML = "Y Position: " + planet.posY.toPrecision(4) + "m";
+	document.getElementById("infoXVel").innerHTML = "X Position: " + planet.velocityX.toPrecision(4) + "m/s";
+	document.getElementById("infoYVel").innerHTML = "Y Position: " + planet.velocityY.toPrecision(4) + "m/s";
+	document.getElementById("infoXAccel").innerHTML = "X Acceleration: " + planet.accelerationX.toPrecision(4) + "m/s²";
+	document.getElementById("infoYAccel").innerHTML = "Y Acceleration: " + planet.accelerationY.toPrecision(4) + "m/s²";
 }
-function setUpScreen(){
+function planetsInstance(){
+	function setUpScreen(){
 	viewWidth = window.innerWidth-304;
 	//-300 to leave space on the right for instructions and other info
 	viewHeight = window.innerHeight-54;
@@ -487,8 +522,10 @@ function setUpScreen(){
 	document.getElementById("buttonSpace").style.top = viewHeight + "px";
 
 	document.getElementById("status").style.left = viewWidth/2 - 35 + "px";
+	
+	distanceScale = largestDistanceFromCenter(Objects)*1.1;
+	setOnScreenRadius(Objects, distanceScale);
 }
-function planetsInstance(){
 	function makeImages(){
 		let img;
 		let diameterOnDisplay;
@@ -498,14 +535,16 @@ function planetsInstance(){
 			img.src = "images/whiteCircle.png";
 			img.id = i;
 			img.style.position = "absolute";
-			img.zIndex = "1";
+			img.zIndex = "1"; 
 			img.onmousedown = function(event) {
+				
 				movingImage = true;
 				const IMAGEID = this.id;
+				selectedPlanetID = parseInt(IMAGEID);
 				this.zIndex = "2";
 			
-				xMouseOnPlanet = event.clientX - this.getBoundingClientRect().left - this.offsetWidth/2;
-				YMouseOnPlanet = event.clientY - this.getBoundingClientRect().top - this.offsetHeight/2;
+				xMouseOnPlanet = event.clientX - this.getBoundingClientRect().left - this.offsetWidth/2 + 2;
+				YMouseOnPlanet = event.clientY - this.getBoundingClientRect().top - this.offsetHeight/2 + 2;
 				
 				//xMouseOnPlanet and the y counterpart are used to keep track of where the mouse was initially when the planet was clicked.
 				//we dont want the planet that was clicked on to snap to the cursor if it was not clicked directly in the centre
@@ -513,11 +552,11 @@ function planetsInstance(){
 				move(event.pageX, event.pageY);
 				
 				function move(mouseX, mouseY){
-					//mouseX is the current x position of the mouse as pixels on the screen
-					//mouseX-xMouseOnPlanet is the x position on screen where the planet should be after taking into account the initial mouse position on the planet
-					//(distanceScale*2)/viewWidth gives the number of meters every pixel represents
-					Objects[IMAGEID].posX = distanceScale*((2*(mouseX-xMouseOnPlanet)-viewWidth)/(viewWidth-2));
-					Objects[IMAGEID].posY = distanceScale*((2*(mouseY-YMouseOnPlanet)-viewHeight)/(2-viewWidth));
+					//equasion derived from: point[0] = viewWidth/2 + (Objects[i].posX / distanceScale) * (viewWidth - 2) / 2 (from XYposToDisplay() function)
+					//which finds the on-screen position of planets, point[0] using the position in the simulation, Objects[i].posX
+					//derived by trying to find Objects[i].posX(actual position in simulation) in terms of the other variables,
+					Objects[IMAGEID].posX = distanceScale*((2*(mouseX-xMouseOnPlanet-screenMove.x)-viewWidth)/(viewWidth-2));
+					Objects[IMAGEID].posY = distanceScale*((2*(mouseY-YMouseOnPlanet-screenMove.y)-viewHeight)/(2-viewWidth));
 				}
 			
 				function mouseMove(event){
@@ -596,6 +635,12 @@ function planetsInstance(){
 	}
 	document.getElementById("slower").onclick = function () {timeChanger(time, false)}
 	document.getElementById("faster").onclick = function () {timeChanger(time, true)}
+	document.getElementById("remove").onclick = function() {
+		removePlanet(Objects, selectedPlanetID);
+		selectedPlanetID = 0;
+	}
+	window.addEventListener("resize", setUpScreen);
+	
 	
 	let xMouseOnPlanet = 0;
 	let yMouseOnPlanet = 0;
@@ -607,6 +652,7 @@ function planetsInstance(){
 	let imageLate = false;
 	let centred = false;
 	let movingImage = false;
+	let selectedPlanetID = 0;
 	
 	for(let i = 0; i < 5; i++){
 		Objects[i] = (makeBody(solarSystem[i].posX, solarSystem[i].posY, solarSystem[i].velocityX, solarSystem[i].velocityY, solarSystem[i].mass, solarSystem[i].radius, solarSystem[i].name, solarSystem[i].colour));
@@ -615,10 +661,10 @@ function planetsInstance(){
 	let distanceScale = largestDistanceFromCenter(Objects)*1.1;
 	trailsQueue = resetTrailQueue(trailsQueue, 12, Objects);
 	makeImages();
+	setUpScreen();
+	displaySelectedPlanetInfo(Objects[0]);
+	setInterval( () => {cycle(Objects, selectedPlanetID, simulating, time, trailsQueue, trailLength, distanceScale, viewHeight, viewWidth)}, 0);
 	
-	setInterval( () => {cycle(Objects, simulating, time, trailsQueue, trailLength, distanceScale, viewHeight, viewWidth)}, 0);
-	
-	console.log("end");
 }
 
 let viewWidth;
@@ -655,6 +701,4 @@ solarSystem.push(makeBody(4.495e12, 0, 0, 5.43e3, 1.024e26, 24622000, "Neptune",
 extraObjects.push(makeBody(-2e9, 0, 0, 9.108e4, 9.945e29, 74085000, "1Sun", "yellow"));
 extraObjects.push(makeBody(2e9, 0, 0, -9.108e4, 9.945e29, 74085000, "2Sun", "yellow"));
 
-window.addEventListener("resize", setUpScreen);
-setUpScreen();
 planetsInstance();
