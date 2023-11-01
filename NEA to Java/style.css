@@ -4,6 +4,7 @@ body {
 }
 #status {
 	position:relative;
+	user-select:none;
 }
 #planetView {
 	position:absolute;
