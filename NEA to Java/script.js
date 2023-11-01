@@ -381,6 +381,7 @@ function makeImages(Objects, distanceScale, viewHeight, viewWidth){
 	}
 	for(let i = 0; i < Objects.length; i++){
 		img = document.createElement("img");
+		img.userSelect = "none"
 		img.src = "images/whiteCircle.png";
 		img.id = i;
 		img.style.position = "absolute";
@@ -414,7 +415,7 @@ async function cycle(Objects, simulating, time, trailsQueue, trailLenght, distan
 	
 	if(Date.now() >= time.UTCTimeLastImage + 30){
 		displayPlanets(Objects, distanceScale, viewHeight, viewWidth);
-		console.log("image late by: " + (Date.now() - time.UTCTimeLastImage - 30));
+		//console.log("image late by: " + (Date.now() - time.UTCTimeLastImage - 30));
 	}
 	
 	else{
@@ -428,6 +429,19 @@ async function cycle(Objects, simulating, time, trailsQueue, trailLenght, distan
 }
 function planetsInstance(){
 	
+	document.getElementById("planetView").addEventListener("wheel", function(event){
+		if(event.deltaY < 0){
+			distanceScale = distanceScale/1.1;
+			screenMove.x = screenMove.x*1.1;
+			screenMove.y = screenMove.y*1.1;
+		}
+		else{
+			distanceScale = distanceScale*1.1;
+			screenMove.x = screenMove.x/1.1;
+			screenMove.y = screenMove.y/1.1;
+		}
+		//console.log(screenMove);
+	});
 	document.getElementById("planetView").onmousedown = async function(event){
 		await document.getElementById("planetView").requestPointerLock();
 		function moveMouse(event){
@@ -438,15 +452,25 @@ function planetsInstance(){
 		document.getElementById("planetView").onmouseup = function () {
 			document.removeEventListener("mousemove", moveMouse)
 			document.exitPointerLock();
-			imageDiv.onmouseup = null;
+			document.getElementById("planetView").onmouseup = null;
 		}
 	}
 	document.getElementById("pause").onclick = function() {
+		if(simulating){
+			document.getElementById("status").innerHTML = "Paused";
+			document.getElementById("status").style.left = viewWidth/2 - 23 + "px";
+			document.getElementById("status").style.userSelect = "none";
+		}
+		else{
+			document.getElementById("status").innerHTML = "";
+		}
 		simulating = !simulating;
 	}
 	document.getElementById("reset").onclick = function() {
 		screenMove.x = 0;
 		screenMove.y = 0;
+		distanceScale = largestDistanceFromCenter(Objects)*1.1;
+		
 	}
 	document.getElementById("slower").onclick = function () {timeChanger(time, false)}
 	document.getElementById("faster").onclick = function () {timeChanger(time, true)}
@@ -462,7 +486,7 @@ function planetsInstance(){
 		Objects[i] = (makeBody(solarSystem[i].posX, solarSystem[i].posY, solarSystem[i].velocityX, solarSystem[i].velocityY, solarSystem[i].mass, solarSystem[i].radius, solarSystem[i].name, solarSystem[i].colour));
 	}
 
-	const distanceScale = largestDistanceFromCenter(Objects)*1.1;
+	let distanceScale = largestDistanceFromCenter(Objects)*1.1;
 	trailsQueue = resetTrailQueue(trailsQueue, 12, Objects);
 	makeImages(Objects, distanceScale, viewHeight, viewWidth);
 	
@@ -470,28 +494,33 @@ function planetsInstance(){
 	
 	console.log("end");
 }
-
-const viewWidth = window.innerWidth-304;
-//-300 to leave space on the right for instructions and other info
-const viewHeight = window.innerHeight-54;
-//-50 to leave space at the bottom for buttons
-//console.log(viewHeight);
-//both have -4 to account for the 2 px wide border
-
-document.getElementById("planetView").style.width = viewWidth + "px";
-document.getElementById("planetView").style.height = viewHeight + "px";
-//parsing to string and adding px at the end to make it working with .style.width
-
-const infoTabX = window.innerWidth-300;
+function setUpScreen(){
+	viewWidth = window.innerWidth-304;
+	//-300 to leave space on the right for instructions and other info
+	viewHeight = window.innerHeight-54;
+	//-50 to leave space at the bottom for buttons
+	//console.log(viewHeight);
+	//both have -4 to account for the 2 px wide border
+	if(viewWidth < 800) viewWidth = 800;
+	if(viewHeight < 450) viewHeight = 450;
+	document.getElementById("planetView").style.width = viewWidth + "px";
+	document.getElementById("planetView").style.height = viewHeight + "px";
+	//parsing to string and adding px at the end to make it working with .style.width
 	
-document.getElementById("infoTab").style.left = infoTabX + "px";
-document.getElementById("infoTab").style.height = window.innerHeight + "px";
+	document.getElementById("infoTab").style.left = viewWidth + 4 + "px";
+	document.getElementById("infoTab").style.height = viewHeight + 54 + "px";
 
-const buttonSpaceY = window.innerHeight-54;
+	document.getElementById("buttonSpace").style.height = 50 + "px";
+	document.getElementById("buttonSpace").style.width = viewWidth + "px";
+	document.getElementById("buttonSpace").style.top = viewHeight + "px";
 
-document.getElementById("buttonSpace").style.height = 50 + "px";
-document.getElementById("buttonSpace").style.width = viewWidth + "px";
-document.getElementById("buttonSpace").style.top = buttonSpaceY + "px";
+	document.getElementById("status").style.left = viewWidth/2 - 35 + "px";
+}
+
+let viewWidth;
+let viewHeight;
+let infoTabX;
+let buttonSpaceY;
 
 const screenMove = {
 	x:0,
@@ -508,7 +537,7 @@ const time = {
 const solarSystem = [];
 const extraObjects = [];
 
-solarSystem.push(makeBody(0, 0, 0, -0.19, 1.989e30, 696340000, "Sun", "yellow"));
+solarSystem.push(makeBody(0, 0, 0, -0.18899, 1.989e30, 696340000, "Sun", "yellow"));
 solarSystem.push(makeBody(7.0311e10, 0, 0, 38.8e3, 3.285e23, 2439700, "Mercury", "gray"));
 solarSystem.push(makeBody(1.082e11, 0, 0, 35.02e3, 4.867e24, 6051800, "Venus", "gray"));
 solarSystem.push(makeBody(1.496e11, 0, 0, 29.78e3, 5.972e24, 6371000, "Earth", "green"));
@@ -522,5 +551,6 @@ solarSystem.push(makeBody(4.495e12, 0, 0, 5.43e3, 1.024e26, 24622000, "Neptune",
 extraObjects.push(makeBody(-2e9, 0, 0, 9.108e4, 9.945e29, 74085000, "1Sun", "yellow"));
 extraObjects.push(makeBody(2e9, 0, 0, -9.108e4, 9.945e29, 74085000, "2Sun", "yellow"));
 
-
+window.addEventListener("resize", setUpScreen);
+setUpScreen();
 planetsInstance();
