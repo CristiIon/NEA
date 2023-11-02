@@ -24,6 +24,9 @@ function makeBody(highlighted, x = 0, y = 0, xVel = 0, yVel = 0, planetMass = 27
 	return temp;
 }
 function makeBodyListCopy(Objects){
+	//needed because if you set a list to equal a list of bodies, it does not become a copy of that list
+	//but instead changes in the new variables are made in the original and vice versa
+	//so to make a copy you need to make a new list
 	let temp = [];
 	for(let i = 0; i < Objects.length; i++){
 		temp[i] = makeBody(Objects[i].isHighlighted, Objects[i].posX, Objects[i].posY, Objects[i].velocityX, Objects[i].velocityY, Objects[i].mass, Objects[i].radius, Objects[i].name, Objects[i].colour);
@@ -31,21 +34,13 @@ function makeBodyListCopy(Objects){
 	return temp;
 }
 function removePlanet(Objects, id){
-	/*
-	console.log("removing id: " + id);
-	console.log("with name: " + Objects[id].name);
-	*/
-	
-	
 	let temp = document.getElementById(id.toString());
 	temp.parentNode.removeChild(temp);
 	
 	for(let i = id+1; i < Objects.length; i++){
 		document.getElementById(i.toString()).id = (i-1).toString();
 	}
-	
 	Objects.splice(id, 1);
-	
 }
 function distanceCalc(x1, y1, x2, y2){
 	let distance = ((x1-x2)**2)+((y1-y2)**2);
@@ -65,10 +60,8 @@ function gravPullForce(mass1, mass2, distance){
 	const gravConstant = 6.6743e-11;
 	
 	let gravitationalPull = (mass1*mass2)/(distance*distance);
-	//console.log("pre: " + gravitationalPull);
 	gravitationalPull = gravitationalPull*gravConstant;
 	//gravitational pull = gravitational constant * (mass1*mass2) / distance^2
-	//console.log("post: " + gravitationalPull);
 	return gravitationalPull;
 }
 function largestDistanceFromCenter(Objects){
@@ -80,9 +73,9 @@ function largestDistanceFromCenter(Objects){
 		}
 	}
 	//check for the farther object from 0,0
-	//used for setting up the view distanceScale which is 
-	//the farthest distance at which an object will still be rendered, starting such that
-	//all bodies will be in view
+	//used for setting up the view distanceScale
+	//distanceScale being the farthest distance at which an object will still be rendered,
+	//starting such that all bodies will be in view, which is why the largest distance needs to be considered
 	return largestDistance;
 }
 function accelerationCalc(Objects){
@@ -93,7 +86,7 @@ function accelerationCalc(Objects){
 	for(let i = 0; i < Objects.length; i++){
 		Objects[i].accelerationX = 0;
 		Objects[i].accelerationY = 0;
-		//sets acceleration to 0 as this
+		//resets acceleration, as this function calculates the acceleration within this frame
 	}
 	
 	for(let body1 = 0; body1 < Objects.length-1; body1++){
@@ -131,23 +124,28 @@ function accelerationCalc(Objects){
 			Objects[body1].accelerationY += (unitVector[1] * gravPull) / Objects[body1].mass;
 			Objects[body2].accelerationY -= (unitVector[1] * gravPull) / Objects[body2].mass;
 			//calculates the accelerations along the y axis
-			
 		}
 	}
 	//console.log(Objects[1]);
 }
-function velocityUpdate(Objects, timePerTick){
+function velocityUpdate(Objects, selectedPlanetID, movingImage, timePerTick){
 	for(let i = 0; i < Objects.length; i++){
-		Objects[i].velocityX += Objects[i].accelerationX*timePerTick;
-		Objects[i].velocityY += Objects[i].accelerationY*timePerTick;
+		if(!(i == selectedPlanetID && movingImage)){
+			//if checks if the user is trying to move this planet in which case it doesn't update the velocity
+			Objects[i].velocityX += Objects[i].accelerationX*timePerTick;
+			Objects[i].velocityY += Objects[i].accelerationY*timePerTick;
+		}
 		//updates the velocities based on accelerations and how much time is simulated per tickPosition
 		//e.g. accelerating at 5m/s for 2 seconds updates velocity to 10 m/s
 	}
 }
-function positionUpdate(Objects, timePerTick){
+function positionUpdate(Objects, selectedPlanetID, movingImage, timePerTick){
 	for(let i = 0; i < Objects.length; i++){
-		Objects[i].posX += Objects[i].velocityX*timePerTick;
-		Objects[i].posY += Objects[i].velocityY*timePerTick;
+		if(!(i == selectedPlanetID && movingImage)){
+			//if checks if the user is trying to move this planet in which case it doesn't update the position
+			Objects[i].posX += Objects[i].velocityX*timePerTick;
+			Objects[i].posY += Objects[i].velocityY*timePerTick;
+		}
 		//updates the position based on velocity and timePerTick
 		
 		//velocityUpdate is not actually needed as you can just multiply acceleration by timePerTick^2
@@ -255,7 +253,6 @@ function collision(Objects, object1, object2){
         removedID = object1;
 	}
 	
-	console.log(newIsHighlighted);
 	const resultantObject = makeBody(newIsHighlighted, newX, newY, newvelocityX, newvelocityY, newMass, newRadius, newName, newColour);
 	removePlanet(Objects, removedID);
 	Objects[newID] = resultantObject;
@@ -326,57 +323,50 @@ function secondsSimplifier(seconds){
 	let days;
 	let weeks;
 	if (seconds % 60 == 0){
-        minutes = seconds / 60;
-        if (minutes % 60 == 0){
-            hours = minutes / 60;
-            if (hours % 24 == 0){
-                days = hours / 24;
-                if (Math.round(days / 365.25) > 1){
-                    return Math.round(days / 365.25) + " years";
-                }
-                if (days % 7 == 0)
-                {
-                    weeks = days / 7;
-                    if (weeks > 1)
-                    {
-                        return weeks + " weeks";
-                    }
-                    else
-                    {
-                        return weeks + " week";
-                    }
-                }
-                if (days > 1){
-                    return days + " days";
-                }
-                else{
-                    return days + " day";
-                }
-            }
-            if (hours > 1){
-                return hours + " hours"; ;
-            }
-            else{
-                return hours + " hour";
-                    }
-                }
-                if (minutes > 1)
-                {
-                    return minutes + " minutes";
-                }
-                else
-                {
-                    return minutes + " minute";
-                }
-            }
-            if (seconds > 1)
-            {
-                return seconds + " seconds";
-            }
-            else
-            {
-                return seconds + " seconds";
-            }
+		minutes = seconds / 60;
+		if (minutes % 60 == 0){
+			hours = minutes / 60;
+			if (hours % 24 == 0){
+				days = hours / 24;
+				if (Math.round(days / 365.25) > 1){
+					return Math.round(days / 365.25) + " years";
+				}
+				if (days % 7 == 0){
+					weeks = days / 7;
+					if (weeks > 1){
+						return weeks + " weeks";
+					}
+					else{
+						return weeks + " week";
+					}
+				}
+				if (days > 1){
+					return days + " days";
+				}
+				else{
+					return days + " day";
+				}
+			}
+			else if (hours > 1){
+				return hours + " hours"; ;
+			}
+			else{
+				return hours + " hour";
+			}
+		}
+		else if (minutes > 1){
+			return minutes + " minutes";
+		}
+		else{
+			return minutes + " minute";
+		}
+    }
+    if (seconds > 1){
+        return seconds + " seconds";
+    }
+    else{
+        return seconds + " seconds";
+    }
 }
 function timeChanger(time, increase){
 	const timeScales = [1, 5, 10, 30, 60, 120, 600, 1800, 3600, 7200, 14400, 43200, 86400, 172800, 345600, 604800, 1209600, 2419200];
@@ -393,67 +383,76 @@ function timeChanger(time, increase){
     }
 	for (; tickPosition < timeScales.length; tickPosition++)
     {
-		//console.log(tickPosition);
         if (time.timePerTick == timeScales[tickPosition])
         {
 			
             break;
         }
     }
+	//for loops used to find where in the timeScales array the current timeScale and timePerTick variables are
 	if (increase == true && scalePosition < timeScales.length - 1)
     {
-        time.timeScale = timeScales[scalePosition + 1];
+		//if its speeding up and not at maximum speed
 		
-		//console.log(tickPosition < scalePosition - 4 && timeScales[tickPosition + 1] <= 60 * 60)
-        if (tickPosition < scalePosition - 4 && timeScales[tickPosition + 1] <= 60 * 60)
+        time.timeScale = timeScales[scalePosition + 1];
+		//timeScale is increased
+        if (tickPosition <= scalePosition - 5 && timeScales[tickPosition + 1] <= 60 * 60)
         {
-			//console.log(tickPosition);
+			//if the time per tick is 5 positions behind scale position and
+			//increasing timePerTick wouldn't increase it past 1 hour simulated pe tick,
+			//timePerTick is increased
             time.timePerTick = timeScales[tickPosition + 1];
         }
     }
 	else if (increase == false && scalePosition > 0)
     {
+		//if slowing down and not at one second per frame
         time.timeScale = timeScales[scalePosition - 1];
-
-        if (tickPosition > scalePosition - 6 && tickPosition > 0)
+		//timeScale is decreased
+        if (tickPosition => scalePosition - 5 && tickPosition > 0)
         {
+			//if the decrease in timeScale would make it less than 5 positions ahead timePerTick
+			//and decreasing TimePerTick wouldn't make it go below one second per tick
+			//timePerTick is decreased
             time.timePerTick = timeScales[tickPosition - 1];
         }
     }
 	document.getElementById("speed").innerHTML = secondsSimplifier(time.timeScale*30) + " Every Second";
 	if(time.timePerTick == 1) document.getElementById("accuracy").innerHTML = "Second for Second";
-	else{
-		document.getElementById("accuracy").innerHTML = "Every " + secondsSimplifier(time.timePerTick);
-	}
-	//console.log(time);
+	else document.getElementById("accuracy").innerHTML = "Every " + secondsSimplifier(time.timePerTick);
 }
-function simulate(Objects, distanceScale, trailsQueue, trailLength, timePerTick){
-	
+function simulate(Objects, selectedPlanetID, movingImage, distanceScale, trailsQueue, trailLength, timePerTick){
+	//calls all the functions needed to simulate one tick
 	collisionChecker(Objects, distanceScale, trailsQueue, trailLength);
 	accelerationCalc(Objects);
-	velocityUpdate(Objects, timePerTick);
-	positionUpdate(Objects, timePerTick);
-	//console.log(Objects[1]);
+	velocityUpdate(Objects, selectedPlanetID, movingImage, timePerTick);
+	positionUpdate(Objects, selectedPlanetID, movingImage, timePerTick);
 }
 function XYposToDisplay(Objects, distanceScale, viewHeight, viewWidth){
-	
+	//converts XY position in the simulation to onscreen XY positions from the centre of the screen in pixels
 	const xyPos = [];
 	let point;
-	
 	for(let i = 0; i < Objects.length; i++){
-		
 		point = new Array(2);
+		point[0] =  (Objects[i].posX / distanceScale) * viewWidth / 2;
+		point[1] =  (Objects[i].posY / distanceScale) * viewWidth / 2;
+		//posX / distanceScale gives how much along the screen the planet is, e.g. 
+		//if posX / distanceScale gives 0.5 (50%) then the planet should be half way from the centre to the right edge of the screen
+		//if it gives -0.5 (-50%) then hlaf way to the left side of the screen
+		//if we then multiply this percentage by how many pixels are from the centre to the edge of the screen you get the coordinate in pixels
+		//which is why we divide viewWidth by 2, to get the distance from the centre to the edge
 		
-		point[0] =  (Objects[i].posX / distanceScale) * (viewWidth - 2) / 2;
-		//console.log(viewWidth/2 + (Objects[i].posX / distanceScale) * (viewWidth - 1) / 2);
-		point[1] =  (Objects[i].posY / distanceScale) * (viewWidth - 2) / 2;
-		
+		//border does not need to be accounted for as it was already accounted when setting up viewWidth
+		//viewWidth is used in both cases because otherwise the image would be streched as view Width and Height have different values
+		//e.g lets say the distanceScale is 1 km, and the view is 2 pixel tall and 4 pixels wide
+		//using width for the X position and height for the Y position would mean that vertically each pixel represents 1 km
+		//but horizontally each pixel would only be 0.5km
 		xyPos.push(point);
 	}
-	//console.log(xyPos);
 	return xyPos;
 }
 function setOnScreenRadius(Objects, distanceScale){
+	//sets the size of the planet images onscreen based on the distanceScale and their actual radius
 	let diameterOnDisplay;
 	for(let i = 0; i < Objects.length; i++){
 		
@@ -466,39 +465,56 @@ function setOnScreenRadius(Objects, distanceScale){
 	}
 }
 function movePlanetsOnScreen(xyPos, selectedPlanetID, centred){
-	let centredCorrectionX = 0;
-	let centredCorrectionY = 0;
 	if(centred){
 		screenMove.centredX = xyPos[selectedPlanetID][0];
 		screenMove.centredY = xyPos[selectedPlanetID][1];
+		//as xyPos stores the positions of the images from the centre of the screen, to centre on a planet all we have to do is
+		//do every planets' XY positions minus the centred planets' XY positions
+		//this will move the centred planet to the centre as its XY positions will be 0,0
+		//and as the same transformation is applied to the rest of the planets, those will be moved along the same direction, keeping their relative positions
 	}
 	for(let i = 0; i < xyPos.length; i++){
 		document.getElementById(i).style.left = (viewWidth/2 + (xyPos[i][0]-screenMove.centredX))-document.getElementById(i).width/2 + screenMove.x + "px";
 		document.getElementById(i).style.top = (viewHeight/2 - (xyPos[i][1]-screenMove.centredY))-document.getElementById(i).height/2 + screenMove.y + "px";
-		//console.log(xyPos[i][0]);
+		//viewWidth and viewHeight are divided 2 and then added to move the planets such that 0,0 is in the centre of the screen, instead of the top right corner
+		//(in css the left and top attributes measure from the top left corner of the div to the top left corncer of the element)
+		//xyPos - screenMove.centredX or Y centres the screen. If screen is not centred then screenMove.centredX/Y will be 0 and this will have no effect
+		//-document.getElementById(i).width/2 this gets the image with the same id as the index of the planet it represents, and divides its width by 2
+		//this corrects the positions so that the image centre is on the position and not the top left corner
+		//then screenMove is added which is used to move the whole screen for when the user clicks and drags on the screen
+		
+		//for .style.top it is viewHeight/2 - unlike .style.left which has viewWidth/2 +
+		//this is due to .style.top measuring distance from the top of the screen, so a smaller value moves the image close to the top of the screen
 	}
 }
 function displayPlanets(Objects, selectedPlanetID, centred, distanceScale, viewHeight, viewWidth){
+	//calls the fuctions needed to display a frame of the current state of the simulation
 	const xyPos = XYposToDisplay(Objects, distanceScale, viewHeight, viewWidth);
-	//console.log(xyPos);
 	movePlanetsOnScreen(xyPos, selectedPlanetID, centred);
 }
-async function cycle(Objects, selectedPlanetID, centred, simulating, changingInfo, time, trailsQueue, trailLength, distanceScale, viewHeight, viewWidth){
+async function cycle(Objects, selectedPlanetID, movingImage, centred, simulating, changingInfo, time, trailsQueue, trailLength, distanceScale, viewHeight, viewWidth){
+	//cycle both simulates and displays continuously
+	
 	if(simulating){
-			for(; time.timeSimulated < time.timeLastImage + time.timeScale; time.timeSimulated+=time.timePerTick){
-			simulate(Objects, distanceScale, trailsQueue, trailLength, time.timePerTick);
+		//if simulating checks if the simulation is paused
+		for(; time.timeSimulated < time.timeLastImage + time.timeScale; time.timeSimulated+=time.timePerTick){
+			//simulates until timeSimulated is greater than timeLastImage+timeScale
+			//this effectively checks if timeScale nubmer of seconds has been simulated
+			simulate(Objects, selectedPlanetID, movingImage, distanceScale, trailsQueue, trailLength, time.timePerTick);
 		}
 		time.timeLastImage = time.timeSimulated;
+		//updates timeLastImage as the program will now dispaly and image
 	}
 	
 	
 	if(Date.now() >= time.UTCTimeLastImage + 30){
+		//if more than 30 ms (irl) have passed since the last image was displayed then it displays an image right away
 		displayPlanets(Objects, selectedPlanetID, centred, distanceScale, viewHeight, viewWidth);
 		displaySelectedPlanetXYInfo(Objects[selectedPlanetID], changingInfo);
-		//console.log("image late by: " + (Date.now() - time.UTCTimeLastImage - 30));
 	}
 	
 	else{
+		//if less than 30 ms have passed since the last image was displayed then the program waits for a timer that lasts until 30 ms have passed to display an image
 		await new Promise ( (resolve) => {
 			setTimeout( () => {
 				displayPlanets(Objects, selectedPlanetID, centred, distanceScale, viewHeight, viewWidth);
@@ -507,10 +523,16 @@ async function cycle(Objects, selectedPlanetID, centred, simulating, changingInf
 		});
 	}
 	time.UTCTimeLastImage = Date.now();
+	//update the time that the last image was printed
 }
 function displaySelectedPlanetXYInfo(planet, changingInfo){
+	//used to display the XY position, velocity and acceleration
+	//as these are constantly changing, these need to be updated every frame
 	let number = 5;
 	if(changingInfo != null){
+		//changingInfo represents the propery that the user has clicked on and is editing
+		//if changingInfo isn't null that means one of the variables is selected and needs to be stopped from updating
+		//otherwise it would update constantly while the user is trying to change it
 		if(changingInfo != "posX"){
 			document.getElementById("infoX").value = planet.posX.toPrecision(4) + "m";
 		}
@@ -523,14 +545,12 @@ function displaySelectedPlanetXYInfo(planet, changingInfo){
 		if(changingInfo != "velocityY"){
 			document.getElementById("infoYVel").value = planet.velocityY.toPrecision(4) + "m/s";
 		}
-		if(changingInfo != "accelerationX"){
-			document.getElementById("infoXAccel").value = planet.accelerationX.toPrecision(4) + "m/s²";
-		}
-		if(changingInfo != "accelerationY"){
-			document.getElementById("infoYAccel").value = planet.accelerationY.toPrecision(4) + "m/s²";
-		}
+		document.getElementById("infoXAccel").value = planet.accelerationX.toPrecision(4) + "m/s²";
+		document.getElementById("infoYAccel").value = planet.accelerationY.toPrecision(4) + "m/s²";
+		//acceleration cannot be edited, so it does not need a check
 	}
 	else{
+		//if no info is being changed then all variables can be updated without concern
 		document.getElementById("infoX").value = planet.posX.toPrecision(4) + "m";
 		document.getElementById("infoY").value = planet.posY.toPrecision(4) + "m";
 		document.getElementById("infoXVel").value = planet.velocityX.toPrecision(4) + "m/s";
@@ -543,6 +563,8 @@ function displaySelectedPlanetXYInfo(planet, changingInfo){
 	
 }
 function displaySelectedPlanetStaticInfo(planet){
+	//displays the properties of the planets that do not need to be updated every frame
+	//these only need to be updated if the user changeds them directly or selects a different planet
 	document.getElementById("infoName").value = planet.name;
 	document.getElementById("infoMass").value = planet.mass + "kg";
 	document.getElementById("infoRadius").value = planet.radius + "m";
@@ -552,23 +574,38 @@ function planetsInstance(Objects = [], addingPlanet = false){
 
 	let xMouseOnPlanet = 0;
 	let yMouseOnPlanet = 0;
-	let simulating = true;
+	//used to store the initial position of the cursor when clicking on a planet, without these the planets' centre would snap to the cursor
+	
 	let trailLength = 12;
 	let trailsQueue = [];
+	//trails not yet implemented
+	
+	let simulating = true;
+	//used for pausing
+	
 	let selectedPlanetID = 0;
-	let imageNeeded = true;
-	let imageLate = false;
 	let centred = false;
+	
 	let movingImage = false;
+	//used when the user clicks and drags to check if moving a planet or the view
+	
 	let changingInfo = null;
+	//used when a user clicks is editing a property of one of the planets
+	
 	let distanceScale = largestDistanceFromCenter(Objects)*1.1;
+	//the distance represented from the centre of the screen to the left/right edge
+	
 	const SAVEPOINT = {
-		initialPlanets:makeBodyListCopy(Objects),
-		addingPlanet:[],
-		preAddingPlanet:[]
+		initialPlanets:makeBodyListCopy(Objects),//loads back to when the system was loaded
+		addingPlanet:[],//loads back to when the user started adding a planet
+		preAddingPlanet:[]//loads back to just before the user started adding a planet, used for canceling addding a planet
 	}
 	
+	let updateSAVEPOINT = false;
+	
 	document.getElementById("cancel").disabled = true;
+	//needs to set disabled to true as if the button was not disabled when refresing
+	//the screen then after refreshing it will not be disabled at the start as it should be even if specified in HTML
 	function updateObjects(whatIsChanged, whatChangeTo){
 		switch (whatIsChanged){
 			case "name":
@@ -585,13 +622,12 @@ function planetsInstance(Objects = [], addingPlanet = false){
 				setOnScreenRadius(Objects, distanceScale);
 				break;
 			case "colour":
-				//console.log(Objects);
 				Objects[selectedPlanetID].colour = whatChangeTo;
 				let temp = document.getElementById(selectedPlanetID.toString());
 				temp.parentNode.removeChild(temp);
 				makeImage(selectedPlanetID);
 				setOnScreenRadius(Objects, distanceScale);
-				//console.log(Objects);
+				//when updating the colour the program deletes the image and replaces it with a new one with the correct colour
 				break;
 			case "posX":
 				Objects[selectedPlanetID].posX = Number(whatChangeTo.slice(0, -1));
@@ -612,30 +648,35 @@ function planetsInstance(Objects = [], addingPlanet = false){
 		//-300 to leave space on the right for instructions and other info
 		viewHeight = window.innerHeight-54;
 		//-50 to leave space at the bottom for buttons
-		//console.log(viewHeight);
 		//both have -4 to account for the 2 px wide border
+		
 		if(viewWidth < 800) viewWidth = 800;
 		if(viewHeight < 450) viewHeight = 450;
+		//minimum view Height 800 pixles, minimum view Width 450 pixels
+		
 		document.getElementById("planetView").style.width = viewWidth + "px";
 		document.getElementById("planetView").style.height = viewHeight + "px";
-		//parsing to string and adding px at the end to make it working with .style.width
 		
 		document.getElementById("infoTab").style.left = viewWidth + 4 + "px";
 		document.getElementById("infoTab").style.height = viewHeight + 54 + "px";
 
-		document.getElementById("buttonSpace").style.height = 50 + "px";
 		document.getElementById("buttonSpace").style.width = viewWidth + "px";
 		document.getElementById("buttonSpace").style.top = viewHeight + "px";
+		//
 		
 		distanceScale = largestDistanceFromCenter(Objects)*1.1;
 		setOnScreenRadius(Objects, distanceScale);
 		
 		document.getElementById("loadingTab").style.width = viewWidth/2 + "px";
 		document.getElementById("loadingTab").style.height = viewHeight/2 + "px";
+		//sets loading tab to be half the width and height of the planet view
+		
 		document.getElementById("loadingTab").style.left = viewWidth/4 + "px";
 		document.getElementById("loadingTab").style.top = viewHeight/4 + "px";
+		//centres the loading tab within the planet view
 	}
 	function resetView() {
+		//moves the view to have 0,0 at its centre and resets disanceScale
 		screenMove.x = 0;
 		screenMove.y = 0;
 		distanceScale = largestDistanceFromCenter(Objects)*1.1;
@@ -643,31 +684,33 @@ function planetsInstance(Objects = [], addingPlanet = false){
 	}
 	function makeImage(id){
 		let img;
-		let diameterOnDisplay;
 		
 		img = document.createElement("img");
 		img.userSelect = "none"
 		img.id = id.toString();
 		img.style.position = "absolute";
-		img.name = "planet";
 		if(Objects[id].isHighlighted){
 			img.zIndex = "2"; 
 			img.src = "images/whiteCircle.png";
+			//if the image is highlighted then it shows above the rest of the images
+			//the white colour cannot be selected by the user to set to a planet, to make it stand out more, as it would be the only white one
 		}
 		else{
 			img.zIndex = "1"; 
 			img.src = "images/"+ Objects[id].colour +"Circle.png";
 		}
 		img.onmousedown = function(event) {
+			//when an image is clicked on, it is set as the slected planet and prepares to move it
 			
 			movingImage = true;
+			//movingImage set true so the program doesn't try to move the screen at the set time
 			const IMAGEID = this.id;
 			if(!centred) selectedPlanetID = parseInt(IMAGEID);
 			this.zIndex = "2";
+			//sets its zIndex to 2 to show the clicked planet over others in the case that the simulation is paused as otherwise overlapping planets would collide
 		
 			xMouseOnPlanet = event.clientX - this.getBoundingClientRect().left - this.offsetWidth/2 + 2;
 			YMouseOnPlanet = event.clientY - this.getBoundingClientRect().top - this.offsetHeight/2 + 2;
-			
 			//xMouseOnPlanet and the y counterpart are used to keep track of where the mouse was initially when the planet was clicked.
 			//we dont want the planet that was clicked on to snap to the cursor if it was not clicked directly in the centre
 		
@@ -683,26 +726,30 @@ function planetsInstance(Objects = [], addingPlanet = false){
 		
 			function mouseMove(event){
 				move(event.pageX, event.pageY);
-				//Objects[IMAGEID].posX += event.movementX * ((distanceScale*2)/viewWidth);
-				//Objects[IMAGEID].posY -= event.movementY * ((distanceScale*2)/viewWidth);
+				//calls the move function with the cursor positions as the input
 			}
 		
 			document.addEventListener("mousemove", mouseMove);
+			//add listner for when the cursor moves that calls the function mouseMove
 		
 			this.onmouseup = function(){
+				//when letting go of click
 				movingImage = false;
 				this.zIndex = "1";
 				document.removeEventListener("mousemove", mouseMove);
 				this.onmouseup = null;
 			}
 			displaySelectedPlanetStaticInfo(Objects[parseInt(IMAGEID)]);
+			//needs to display the static info as the selected planet has been updated
 		}
 		this.ondragstart = function() {return false;};
-		document.getElementById("planetView").appendChild(img);
+		//turns off the default click and drag function of the browser for this image
 		
+		document.getElementById("planetView").appendChild(img);
+		//adds the new image to the document
 	}
 	document.getElementById("planetView").addEventListener("wheel", function(event){
-		let newSize;
+		//when using the scroll wheel the view zooms in and out
 		if(event.deltaY < 0){
 			distanceScale /= 1.1;
 			xMouseOnPlanet *= 1.1;
@@ -718,11 +765,12 @@ function planetsInstance(Objects = [], addingPlanet = false){
 			screenMove.y /= 1.1;
 		}
 		setOnScreenRadius(Objects, distanceScale);
-		//console.log(screenMove);
 	});
 	document.getElementById("planetView").onmousedown = async function(event){
 		if(movingImage) throw "already moving planet, cannot move whole image";
+		//checks if the user is trying to move a planet instead
 		
+		//otherwise moves the view along with the mouse
 		function mouseMove(event){
 			screenMove.x += event.movementX;
 			screenMove.y += event.movementY;
@@ -735,8 +783,11 @@ function planetsInstance(Objects = [], addingPlanet = false){
 			document.getElementById("planetView").onmouseup = null;
 		}
 	}
-	let stats = document.getElementsByClassName("stats");
+	const stats = document.getElementsByClassName("stats");
+	//stats is an array of the elements that have the class name of "stats"
 	for(let i = 0; i < stats.length-2; i++){
+		//gives all but the last two elemnts of the array listeners to check if the user has clicked on them to edit them
+		//the last two are not given listeners as they are the acceleration along the x and y axis which cannot be edited.
 		stats[i].style.pointerEvents = "auto";
 		stats[i].addEventListener("blur", (event) => {
 			updateObjects(changingInfo, stats[i].value);
@@ -763,14 +814,19 @@ function planetsInstance(Objects = [], addingPlanet = false){
 	document.getElementById("pause").onclick = function() {
 		if(simulating){
 			document.getElementById("pause").innerHTML = "Unpause";
-			document.getElementById("status").innerHTML = "Paused";
+			document.getElementById("pauseStatus").innerHTML = "Paused";
+			//shows Paused in planetView and makes the button say unpause
 		}
 		else{
-			if(addingPlanet){
+			if(addingPlanet && updateSAVEPOINT){
+				//if the program is adding a planet and updateSAVEPOINT is true, then SAVEPOINT.addingPlanet is updated
+				//updateSAVEPOINT is set to true by the rewind buttons' function
 				SAVEPOINT.addingPlanet = makeBodyListCopy(Objects);
+				updateSAVEPOINT = false;
 			}
 			document.getElementById("pause").innerHTML = "Pause";
-			document.getElementById("status").innerHTML = "";
+			document.getElementById("pauseStatus").innerHTML = "";
+			//makes the button say pause and removes the Pause from the planetView
 		}
 		simulating = !simulating;
 	}
@@ -785,53 +841,79 @@ function planetsInstance(Objects = [], addingPlanet = false){
 		if(!addingPlanet){
 			addingPlanet = true;
 			simulating = false;
+			//pauses the simulation
+			updateSAVEPOINT = true;
 			SAVEPOINT.preAddingPlanet = makeBodyListCopy(Objects);
+			SAVEPOINT.addingPlanet = makeBodyListCopy(Objects);
+			//adding Planet needs to be set here in case the user uses the rewind button before unpausing first
 			document.getElementById("cancel").disabled = false;
+			//enables the cancel button to allow the user to cancel adding a planet
 			document.getElementById("pause").innerHTML = "Unpause";
-			document.getElementById("status").innerHTML = "Paused";
+			document.getElementById("pauseStatus").innerHTML = "Paused";
 			this.innerHTML = "Confirm";
+			//changes the add planet button to confirm
 			document.getElementById("load").disabled = true;
 			document.getElementById("export").disabled = true;
 			document.getElementById("import").disabled = true;
+			//disables loading, importing and exporting of the scene
 			Objects.push(makeBody(true));
-			
+			//adds a planet onto Objects with the default paramaters and highlited
 			makeImage(Objects.length-1, true);
+			//creates an image for the new planet
 			setOnScreenRadius(Objects, distanceScale);
-			
-			makeImage();
+			//sizes the new image appropriately
 		}
 		else{
 			addingPlanet = false;
 			if(!simulating){
+				//unpauses if paused
 				simulating = true;
-				document.getElementById("status").innerHTML = "";
+				document.getElementById("pauseStatus").innerHTML = "";
+				document.getElementById("pause").innerHTML = "Pause";
 			}
 			Objects[selectedPlanetID].isHighlighted = false;
+			//sets the selected planet to not be highlited
+			document.getElementById(selectedPlanetID.toString()).zIndex = "1";
+			//sets zIndex back to default
 			document.getElementById("cancel").disabled = true;
 			document.getElementById("load").disabled = false;
 			document.getElementById("export").disabled = false;
 			document.getElementById("import").disabled = false;
+			
 			this.innerHTML = "Add Planet";
 		}
 	}
 	document.getElementById("cancel").onclick = function() {
+		if(!simulating){
+			simulating = true;
+			document.getElementById("pauseStatus").innerHTML = "";
+		}
 		removePlanet(Objects, Objects.length-1);
 		selectedPlanetID = 0;
+		displaySelectedPlanetStaticInfo(Objects[selectedPlanetID]);
 		Objects = makeBodyListCopy(SAVEPOINT.preAddingPlanet);
+		//set Objects to what it was before clicking the add planet button
 		addingPlanet = false;
 		document.getElementById("cancel").disabled = true;
 		document.getElementById("load").disabled = false;
 		document.getElementById("export").disabled = false;
 		document.getElementById("import").disabled = false;
+		document.getElementById("addPlanet").innerHTML = "Add Planet";
+		if(!simulating){
+			simulating = true;
+			document.getElementById("pauseStatus").innerHTML = "";
+		}
 	}
 	document.getElementById("rewind").onclick = function () {
-		console.log(SAVEPOINT.addingPlanet);
 		for(let i = 0; i < Objects.length;){
 			removePlanet(Objects, i);
 		}
 		
 		if(!addingPlanet) Objects = makeBodyListCopy(SAVEPOINT.initialPlanets);
-		else Objects = makeBodyListCopy(SAVEPOINT.addingPlanet);
+		else{
+			updateSAVEPOINT = true;
+			Objects = makeBodyListCopy(SAVEPOINT.addingPlanet);
+		}
 		console.log(Objects);
 		for(let i = 0; i < Objects.length; i++){
 			makeImage(i);
@@ -843,9 +925,12 @@ function planetsInstance(Objects = [], addingPlanet = false){
 		setOnScreenRadius(Objects, distanceScale);
 		simulating = false;
 		document.getElementById("pause").innerHTML = "Unpause";
-		document.getElementById("status").innerHTML = "Paused";
+		document.getElementById("pauseStatus").innerHTML = "Paused";
 	}
-	
+	document.getElementById("load").onclick = function () {
+		document.getElementById("loadingStatus").innerHTML = "Select Scene";
+		document.getElementById("loadingTab").zIndex = "2";
+	}
 	window.addEventListener("resize", setUpScreen);
 	
 	trailsQueue = resetTrailQueue(trailsQueue, 12, Objects);
@@ -860,10 +945,10 @@ function planetsInstance(Objects = [], addingPlanet = false){
 	if(addingPlanet){
 		simulating = false;
 		document.getElementById("pause").innerHTML = "Unpause"
-		document.getElementById("status").innerHTML = "Paused";
+		document.getElementById("pauseStatus").innerHTML = "Paused";
 	}
 	
-	let simulation = setInterval( () => {cycle(Objects, selectedPlanetID, centred, simulating, changingInfo, time, trailsQueue, trailLength, distanceScale, viewHeight, viewWidth)}, 0);
+	let simulation = setInterval( () => {cycle(Objects, selectedPlanetID, movingImage, centred, simulating, changingInfo, time, trailsQueue, trailLength, distanceScale, viewHeight, viewWidth)}, 0);
 	
 }
 

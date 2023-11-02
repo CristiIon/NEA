@@ -5,9 +5,10 @@ body {
 p {
 	user-select:none;
 }
-#status {
+.status {
 	position:relative;
 	user-select:none;
+	text-align:center;
 }
 #planetView {
 	position:absolute;
@@ -18,7 +19,6 @@ p {
 	color:white;
 	overflow:hidden;
 	z-Index:1;
-	text-align:center;
 }
 #infoTab{
 	color:white;
@@ -77,9 +77,4 @@ p {
 	color:white;
 	font-size:16px;
 	pointer-events:none;
-}
-.planet{
-	user-select:none;
-	position:absolute;
-	z-Index:1;
 }
